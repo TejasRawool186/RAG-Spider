@@ -1,4 +1,5 @@
 {
+  "actorOutputSchemaVersion": 1,
   "title": "RAG Spider Output",
   "description": "Clean, chunked Markdown content extracted from websites, ready for RAG systems and AI training",
   "type": "object",
@@ -19,14 +20,24 @@
       "title": "Processing Status",
       "type": "string",
       "description": "Status of the content extraction process",
-      "enum": ["success", "extraction_failed", "chunking_failed", "error", "request_failed"],
+      "enum": [
+        "success",
+        "extraction_failed",
+        "chunking_failed",
+        "error",
+        "request_failed"
+      ],
       "example": "success"
     },
     "extractionMethod": {
       "title": "Extraction Method",
       "type": "string",
       "description": "The method used to extract clean content from the webpage",
-      "enum": ["readability", "fallback", "jsdom"],
+      "enum": [
+        "readability",
+        "fallback",
+        "jsdom"
+      ],
       "example": "readability"
     },
     "totalChunks": {
@@ -154,7 +165,14 @@
             "example": "chunk_abc123_0_xyz789"
           }
         },
-        "required": ["content", "metadata", "tokens", "wordCount", "chunkIndex", "chunkId"]
+        "required": [
+          "content",
+          "metadata",
+          "tokens",
+          "wordCount",
+          "chunkIndex",
+          "chunkId"
+        ]
       }
     },
     "processingStats": {
@@ -209,5 +227,10 @@
       "example": "Content extraction failed: Page returned 404"
     }
   },
-  "required": ["url", "title", "status", "timestamp"]
+  "required": [
+    "url",
+    "title",
+    "status",
+    "timestamp"
+  ]
 }
