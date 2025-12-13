@@ -1,0 +1,5 @@
+# Text processing and chunking services will be placed here
+# - Text chunking with LangChain
+# - Metadata enrichment
+# - Token estimation
+# - Content validation

@@ -1,0 +1,38 @@
+{
+  "name": "rag-spider",
+  "version": "1.0.0",
+  "description": "High-performance web crawler that extracts clean content from documentation websites and converts it to RAG-ready Markdown chunks",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js"
+  },
+  "keywords": [
+    "apify",
+    "crawler",
+    "rag",
+    "markdown",
+    "documentation",
+    "content-extraction",
+    "ai",
+    "vector-database"
+  ],
+  "author": "RAG Spider Team",
+  "license": "MIT",
+  "dependencies": {
+    "@mozilla/readability": "^0.5.0",
+    "apify": "^3.2.0",
+    "crawlee": "^3.11.0",
+    "gpt-tokenizer": "^2.1.2",
+    "jsdom": "^23.0.0",
+    "langchain": "^0.1.0",
+    "minimatch": "^10.1.1",
+    "playwright": "^1.40.0",
+    "turndown": "^7.1.2",
+    "turndown-plugin-gfm": "^1.0.2"
+  },
+
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

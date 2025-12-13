@@ -1,0 +1,5 @@
+# Crawler-specific components will be placed here
+# - URL filtering and pattern matching
+# - Crawl depth management
+# - Link discovery and enqueuing
+# - SPA content loading

@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Development files
+.git/
+.gitignore
+*.md
+!README.md
+
+# Test files
+**/*.test.js
+coverage/
+.nyc_output/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# Apify storage
+apify_storage/
+
+# Kiro specs (development only)
+.kiro/

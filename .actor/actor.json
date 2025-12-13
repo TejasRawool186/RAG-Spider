@@ -1,0 +1,23 @@
+{
+  "actorSpecification": 1,
+  "name": "rag-spider",
+  "title": "RAG Spider - Web to Markdown for AI",
+  "description": "High-performance web crawler that extracts clean content from documentation websites, strips away navigation and ads using Mozilla's Readability engine, and converts content to RAG-ready Markdown chunks. Perfect for building high-quality AI training datasets.",
+  "version": "1.0.0",
+  "meta": {
+    "templateId": "node-crawlee-playwright"
+  },
+  "input": ".actor/input_schema.json",
+  "dockerfile": "./Dockerfile",
+  "readme": "./README.md",
+  "categories": [
+    "SCRAPER",
+    "AI",
+    "DEVELOPER_TOOLS"
+  ],
+  "defaultRunOptions": {
+    "build": "latest",
+    "timeoutSecs": 3600,
+    "memoryMbytes": 4096
+  }
+}
