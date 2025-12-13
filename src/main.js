@@ -101,12 +101,13 @@ await Actor.main(async () => {
         startTime: Date.now()
     };
     
+    // Extract startUrls from crawler config (PlaywrightCrawler doesn't accept it in constructor)
+    const { startUrls, proxyConfiguration: _, ...crawlerOptions } = crawlerConfig;
+    
     // Set up crawler with complete request handler pipeline
     const crawler = new PlaywrightCrawler({
-        // Use validated configuration (excluding proxyConfiguration which we'll add separately)
-        ...Object.fromEntries(
-            Object.entries(crawlerConfig).filter(([key]) => key !== 'proxyConfiguration')
-        ),
+        // Use validated configuration (excluding startUrls and proxyConfiguration)
+        ...crawlerOptions,
         // Add the properly instantiated proxy configuration
         proxyConfiguration,
         
@@ -345,10 +346,10 @@ await Actor.main(async () => {
     });
     
     // Add start URLs to the crawler (now validated)
-    await crawler.addRequests(config.startUrls);
+    await crawler.addRequests(startUrls);
     logger.info('Start URLs added to crawler', { 
-        count: config.startUrls.length,
-        urls: config.startUrls 
+        count: startUrls.length,
+        urls: startUrls 
     });
     
     // Start crawling
