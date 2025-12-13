@@ -194,31 +194,46 @@ await Actor.main(async () => {
                 
                 // Step 4: Enrich metadata and estimate tokens
                 const processingTimer = logger.startTimer('metadata_processing', MetricCategory.PROCESSING);
+                
+                // Prepare source info for metadata enrichment
+                const sourceInfo = {
+                    url: request.url,
+                    title: title,
+                    crawledAt: new Date().toISOString()
+                };
+                
+                const processingInfo = {
+                    method: 'langchain-recursive',
+                    extractionMethod: extractionResult.method,
+                    processingTime: Date.now()
+                };
+                
+                // Enrich chunks with metadata
+                const enrichmentResult = await metadataEnricher.enrich(
+                    chunkingResult.chunks,
+                    sourceInfo,
+                    processingInfo
+                );
+                
+                // Calculate token estimates
                 const enrichedChunks = [];
                 let totalTokens = 0;
                 
-                for (let i = 0; i < chunkingResult.chunks.length; i++) {
-                    const chunk = chunkingResult.chunks[i];
+                for (let i = 0; i < enrichmentResult.enrichedChunks.length; i++) {
+                    const enrichedChunk = enrichmentResult.enrichedChunks[i];
+                    const tokenEstimate = await tokenEstimator.estimateTokens(enrichedChunk.content);
                     
-                    // Enrich metadata
-                    const enrichedMetadata = metadataEnricher.enrichMetadata(chunk.metadata, {
-                        chunkIndex: i,
-                        totalChunks: chunkingResult.chunks.length,
-                        extractionMethod: extractionResult.method,
-                        processingTimestamp: new Date().toISOString()
-                    });
-                    
-                    // Estimate tokens
-                    const tokenEstimate = tokenEstimator.estimateTokens(chunk.content);
-                    totalTokens += tokenEstimate.tokenCount;
+                    const tokenCount = tokenEstimate.tokenCount || 0;
+                    const wordCount = tokenEstimate.wordCount || 0;
+                    totalTokens += tokenCount;
                     
                     enrichedChunks.push({
-                        content: chunk.content,
-                        metadata: enrichedMetadata,
-                        tokens: tokenEstimate.tokenCount,
-                        wordCount: tokenEstimate.wordCount,
+                        content: enrichedChunk.content,
+                        metadata: enrichedChunk.metadata,
+                        tokens: tokenCount,
+                        wordCount: wordCount,
                         chunkIndex: i,
-                        chunkId: `${request.url}#chunk-${i}`
+                        chunkId: enrichedChunk.id || `${request.url}#chunk-${i}`
                     });
                 }
                 logger.endTimer(processingTimer);
