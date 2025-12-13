@@ -32,13 +32,11 @@
       "maximum": 10
     },
     "includeUrlGlobs": {
-      "title": "Include URL Patterns",
+      "title": "Include URL Patterns (Optional)",
       "type": "array",
-      "description": "Glob patterns to limit crawling scope. Only URLs matching these patterns will be processed. Example: ['https://docs.example.com/**']",
+      "description": "Optional glob patterns to limit crawling scope. Leave empty to crawl all discovered links. Only URLs matching these patterns will be processed. Example: ['https://docs.example.com/**']",
       "items": {
-        "title": "URL Pattern",
-        "type": "string",
-        "description": "Glob pattern for URLs to include"
+        "type": "string"
       },
       "default": []
     },
