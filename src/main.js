@@ -80,6 +80,14 @@ await Actor.main(async () => {
     
     logger.info('All components initialized successfully');
     
+    // Create proxy configuration instance
+    const proxyConfiguration = await Actor.createProxyConfiguration(
+        configManager.getConfig().proxyConfiguration
+    );
+    logger.info('Proxy configuration initialized', {
+        proxyEnabled: configManager.getConfig().proxyConfiguration?.useApifyProxy || false
+    });
+    
     // Get crawler configuration
     const crawlerConfig = configManager.getCrawlerConfig();
     
@@ -95,8 +103,12 @@ await Actor.main(async () => {
     
     // Set up crawler with complete request handler pipeline
     const crawler = new PlaywrightCrawler({
-        // Use validated configuration
-        ...crawlerConfig,
+        // Use validated configuration (excluding proxyConfiguration which we'll add separately)
+        ...Object.fromEntries(
+            Object.entries(crawlerConfig).filter(([key]) => key !== 'proxyConfiguration')
+        ),
+        // Add the properly instantiated proxy configuration
+        proxyConfiguration,
         
         // Add request preprocessing
         preNavigationHooks: [
