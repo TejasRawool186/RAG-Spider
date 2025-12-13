@@ -176,7 +176,7 @@ await Actor.main(async () => {
 
                 // Step 3: Chunk the content
                 const chunkingTimer = logger.startTimer('text_chunking', MetricCategory.CHUNKING);
-                const chunkingResult = textChunker.chunk(extractionResult.markdown, {
+                const chunkingResult = await textChunker.chunk(extractionResult.markdown, {
                     preserveStructure: true,
                     metadata: {
                         url: request.url,
