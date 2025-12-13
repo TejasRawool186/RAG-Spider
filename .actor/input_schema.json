@@ -35,6 +35,7 @@
       "title": "Include URL Patterns",
       "type": "array",
       "description": "Glob patterns to limit crawling scope. Only URLs matching these patterns will be processed. Example: ['https://docs.example.com/**']",
+      "editor": "json",
       "items": {
         "title": "URL Pattern",
         "type": "string",
