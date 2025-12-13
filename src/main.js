@@ -101,8 +101,8 @@ await Actor.main(async () => {
         startTime: Date.now()
     };
     
-    // Extract startUrls from crawler config (PlaywrightCrawler doesn't accept it in constructor)
-    const { startUrls, proxyConfiguration: _, ...crawlerOptions } = crawlerConfig;
+    // Extract startUrls and custom options from crawler config (PlaywrightCrawler doesn't accept them in constructor)
+    const { startUrls, proxyConfiguration: _, _requestDelay, ...crawlerOptions } = crawlerConfig;
     
     // Set up crawler with complete request handler pipeline
     const crawler = new PlaywrightCrawler({
@@ -111,9 +111,15 @@ await Actor.main(async () => {
         // Add the properly instantiated proxy configuration
         proxyConfiguration,
         
-        // Add request preprocessing
+        // Add request preprocessing with delay implementation
         preNavigationHooks: [
             async ({ request }) => {
+                // Implement request delay manually
+                if (_requestDelay && _requestDelay > 0 && processingStats.totalRequests > 0) {
+                    logger.info(`Applying request delay: ${_requestDelay}ms`);
+                    await new Promise(resolve => setTimeout(resolve, _requestDelay));
+                }
+                
                 request.userData = { 
                     startTime: Date.now(),
                     requestIndex: processingStats.totalRequests++

@@ -98,20 +98,21 @@ export class ConfigManager {
         return {
             startUrls: config.startUrls,
             maxRequestsPerCrawl: config.maxRequestsPerCrawl,
-            requestHandlerTimeoutSecs: 60,
+            requestHandlerTimeoutSecs: 120,
             navigationTimeoutSecs: 30,
-            requestDelay: config.requestDelay,
             proxyConfiguration: config.proxyConfiguration,
             
-            // Crawler behavior settings
-            maxConcurrency: 10,
+            // Crawler behavior settings - valid PlaywrightCrawler options
+            maxConcurrency: Math.max(1, Math.min(10, Math.floor(10000 / Math.max(config.requestDelay, 100)))),
             maxRequestRetries: 3,
-            requestHandlerTimeoutSecs: 120,
             
             // Memory management
             keepAlive: false,
             useSessionPool: true,
-            persistCookiesPerSession: false
+            persistCookiesPerSession: false,
+            
+            // Store request delay for manual implementation in request handler
+            _requestDelay: config.requestDelay
         };
     }
     
