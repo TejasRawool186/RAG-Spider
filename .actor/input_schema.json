@@ -19,7 +19,9 @@
             "description": "The URL to crawl"
           }
         },
-        "required": ["url"]
+        "required": [
+          "url"
+        ]
       },
       "minItems": 1
     },
@@ -35,6 +37,7 @@
       "title": "Include URL Patterns (Optional)",
       "type": "array",
       "description": "Optional glob patterns to limit crawling scope. Leave empty to crawl all discovered links. Only URLs matching these patterns will be processed. Example: ['https://docs.example.com/**']",
+      "editor": "stringList",
       "items": {
         "type": "string"
       },
