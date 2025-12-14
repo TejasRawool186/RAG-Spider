@@ -7,9 +7,12 @@
   "meta": {
     "templateId": "node-crawlee-playwright"
   },
-  "input": "input_schema.json",
-  "dockerfile": "Dockerfile",
-  "readme": "README.md",
+  "input": "./input_schema.json",
+  "storages": {
+    "dataset": "./output_schema.json"
+  },
+  "dockerfile": "./Dockerfile",
+  "readme": "./README.md",
   "categories": [
     "SCRAPER",
     "AI",
