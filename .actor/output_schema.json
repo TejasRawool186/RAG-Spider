@@ -6,7 +6,7 @@
       "type": "string",
       "description": "The original URL that was crawled and processed"
     },
-    "title": {
+    "pageTitle": {
       "title": "Page Title",
       "type": "string",
       "description": "The title of the webpage"
@@ -63,7 +63,7 @@
       "transformation": {
         "fields": [
           "url",
-          "title", 
+          "pageTitle", 
           "status",
           "totalChunks",
           "totalTokens",
@@ -78,7 +78,7 @@
             "label": "Source URL",
             "format": "link"
           },
-          "title": {
+          "pageTitle": {
             "label": "Page Title"
           },
           "status": {
