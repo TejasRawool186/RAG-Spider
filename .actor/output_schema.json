@@ -1,0 +1,117 @@
+{
+  "actorSpecification": 1,
+  "fields": [
+    {
+      "key": "url",
+      "title": "Source URL",
+      "type": "string",
+      "description": "The original URL that was crawled and processed"
+    },
+    {
+      "key": "title", 
+      "title": "Page Title",
+      "type": "string",
+      "description": "The title of the webpage"
+    },
+    {
+      "key": "status",
+      "title": "Processing Status", 
+      "type": "string",
+      "description": "Status of the content extraction process"
+    },
+    {
+      "key": "extractionMethod",
+      "title": "Extraction Method",
+      "type": "string", 
+      "description": "The method used to extract clean content"
+    },
+    {
+      "key": "totalChunks",
+      "title": "Total Chunks",
+      "type": "integer",
+      "description": "Number of text chunks generated from the content"
+    },
+    {
+      "key": "totalTokens",
+      "title": "Total Tokens", 
+      "type": "integer",
+      "description": "Estimated total number of tokens across all chunks"
+    },
+    {
+      "key": "totalWords",
+      "title": "Total Words",
+      "type": "integer", 
+      "description": "Total word count across all chunks"
+    },
+    {
+      "key": "chunks",
+      "title": "Content Chunks",
+      "type": "array",
+      "description": "Array of processed content chunks ready for vector database ingestion"
+    },
+    {
+      "key": "processingStats",
+      "title": "Processing Statistics",
+      "type": "object",
+      "description": "Performance metrics and processing information"
+    },
+    {
+      "key": "timestamp",
+      "title": "Processing Timestamp", 
+      "type": "string",
+      "description": "When this content was processed"
+    },
+    {
+      "key": "configSummary",
+      "title": "Configuration Summary",
+      "type": "object", 
+      "description": "Summary of the configuration used for processing"
+    }
+  ],
+  "views": {
+    "overview": {
+      "title": "Content Overview",
+      "transformation": {
+        "fields": [
+          "url",
+          "title", 
+          "status",
+          "totalChunks",
+          "totalTokens",
+          "totalWords",
+          "extractionMethod"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "url": {
+            "label": "Source URL",
+            "format": "link"
+          },
+          "title": {
+            "label": "Page Title"
+          },
+          "status": {
+            "label": "Status"
+          },
+          "totalChunks": {
+            "label": "Chunks",
+            "format": "number"
+          },
+          "totalTokens": {
+            "label": "Tokens", 
+            "format": "number"
+          },
+          "totalWords": {
+            "label": "Words",
+            "format": "number"
+          },
+          "extractionMethod": {
+            "label": "Method"
+          }
+        }
+      }
+    }
+  }
+}
