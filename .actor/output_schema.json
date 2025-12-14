@@ -1,0 +1,236 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "RAG Spider Output",
+  "description": "Clean, chunked Markdown content extracted from websites, ready for RAG systems and AI training",
+  "type": "object",
+  "properties": {
+    "url": {
+      "title": "Source URL",
+      "type": "string",
+      "description": "The original URL that was crawled and processed",
+      "example": "https://docs.example.com/getting-started"
+    },
+    "title": {
+      "title": "Page Title",
+      "type": "string",
+      "description": "The title of the webpage extracted from the HTML <title> tag",
+      "example": "Getting Started Guide - Documentation"
+    },
+    "status": {
+      "title": "Processing Status",
+      "type": "string",
+      "description": "Status of the content extraction process",
+      "enum": [
+        "success",
+        "extraction_failed",
+        "chunking_failed",
+        "error",
+        "request_failed"
+      ],
+      "example": "success"
+    },
+    "extractionMethod": {
+      "title": "Extraction Method",
+      "type": "string",
+      "description": "The method used to extract clean content from the webpage",
+      "enum": [
+        "readability",
+        "fallback",
+        "jsdom"
+      ],
+      "example": "readability"
+    },
+    "totalChunks": {
+      "title": "Total Chunks",
+      "type": "integer",
+      "description": "Number of text chunks generated from the content",
+      "minimum": 0,
+      "example": 5
+    },
+    "totalTokens": {
+      "title": "Total Tokens",
+      "type": "integer",
+      "description": "Estimated total number of tokens across all chunks (useful for LLM cost estimation)",
+      "minimum": 0,
+      "example": 1250
+    },
+    "totalWords": {
+      "title": "Total Words",
+      "type": "integer",
+      "description": "Total word count across all chunks",
+      "minimum": 0,
+      "example": 875
+    },
+    "chunks": {
+      "title": "Content Chunks",
+      "type": "array",
+      "description": "Array of processed content chunks ready for vector database ingestion",
+      "items": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "title": "Chunk Content",
+            "type": "string",
+            "description": "Clean Markdown content for this chunk",
+            "example": "# Getting Started\n\nThis guide will help you set up your first project..."
+          },
+          "metadata": {
+            "title": "Chunk Metadata",
+            "type": "object",
+            "description": "Rich metadata for RAG systems and vector databases",
+            "properties": {
+              "source": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "description": "Source URL"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Page title"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "description": "Domain name"
+                  },
+                  "crawledAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "When the content was crawled"
+                  }
+                }
+              },
+              "content": {
+                "type": "object",
+                "properties": {
+                  "length": {
+                    "type": "integer",
+                    "description": "Character length of chunk"
+                  },
+                  "wordCount": {
+                    "type": "integer",
+                    "description": "Word count of chunk"
+                  },
+                  "structure": {
+                    "type": "object",
+                    "description": "Content structure analysis"
+                  }
+                }
+              },
+              "processing": {
+                "type": "object",
+                "properties": {
+                  "chunkIndex": {
+                    "type": "integer",
+                    "description": "Index of this chunk"
+                  },
+                  "totalChunks": {
+                    "type": "integer",
+                    "description": "Total number of chunks"
+                  },
+                  "extractionMethod": {
+                    "type": "string",
+                    "description": "Method used for extraction"
+                  }
+                }
+              }
+            }
+          },
+          "tokens": {
+            "title": "Token Count",
+            "type": "integer",
+            "description": "Estimated tokens for this chunk (useful for LLM API cost calculation)",
+            "minimum": 0,
+            "example": 250
+          },
+          "wordCount": {
+            "title": "Word Count",
+            "type": "integer",
+            "description": "Number of words in this chunk",
+            "minimum": 0,
+            "example": 175
+          },
+          "chunkIndex": {
+            "title": "Chunk Index",
+            "type": "integer",
+            "description": "Zero-based index of this chunk in the sequence",
+            "minimum": 0,
+            "example": 0
+          },
+          "chunkId": {
+            "title": "Chunk ID",
+            "type": "string",
+            "description": "Unique identifier for this chunk",
+            "example": "chunk_abc123_0_xyz789"
+          }
+        },
+        "required": [
+          "content",
+          "metadata",
+          "tokens",
+          "wordCount",
+          "chunkIndex",
+          "chunkId"
+        ]
+      }
+    },
+    "processingStats": {
+      "title": "Processing Statistics",
+      "type": "object",
+      "description": "Performance metrics and processing information",
+      "properties": {
+        "extractionTime": {
+          "type": "integer",
+          "description": "Time spent on content extraction (ms)"
+        },
+        "chunkingTime": {
+          "type": "integer",
+          "description": "Time spent on text chunking (ms)"
+        },
+        "totalProcessingTime": {
+          "type": "integer",
+          "description": "Total processing time for this page (ms)"
+        }
+      }
+    },
+    "timestamp": {
+      "title": "Processing Timestamp",
+      "type": "string",
+      "format": "date-time",
+      "description": "When this content was processed",
+      "example": "2025-12-13T17:41:04.733Z"
+    },
+    "configSummary": {
+      "title": "Configuration Summary",
+      "type": "object",
+      "description": "Summary of the configuration used for processing",
+      "properties": {
+        "chunkSize": {
+          "type": "integer",
+          "description": "Chunk size used"
+        },
+        "chunkOverlap": {
+          "type": "integer",
+          "description": "Chunk overlap used"
+        },
+        "requestDelay": {
+          "type": "integer",
+          "description": "Request delay applied (ms)"
+        }
+      }
+    },
+    "error": {
+      "title": "Error Message",
+      "type": "string",
+      "description": "Error message if processing failed (only present when status is not 'success')",
+      "example": "Content extraction failed: Page returned 404"
+    }
+  },
+  "required": [
+    "url",
+    "title",
+    "status",
+    "timestamp"
+  ]
+}
