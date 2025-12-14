@@ -1,5 +1,5 @@
 {
-  "actorOutputSchemaVersion": 1,
+  "actorSpecification": 1,
   "title": "RAG Spider Output",
   "description": "Clean, chunked Markdown content extracted from websites, ready for RAG systems and AI training",
   "type": "object",
