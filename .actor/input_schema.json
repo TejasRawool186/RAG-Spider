@@ -23,13 +23,19 @@
           "url"
         ]
       },
-      "minItems": 1
+      "minItems": 1,
+      "prefill": [
+        {
+          "url": "https://docs.apify.com/academy/web-scraping-for-beginners"
+        }
+      ]
     },
     "crawlDepth": {
       "title": "Crawl Depth",
       "type": "integer",
       "description": "Maximum depth to crawl from starting URLs. Set to 1 to crawl only start URLs, 2 to include one level of links, etc.",
-      "default": 2,
+      "default": 1,
+      "prefill": 1,
       "minimum": 1,
       "maximum": 10
     },
@@ -41,13 +47,15 @@
       "items": {
         "type": "string"
       },
-      "default": []
+      "default": [],
+      "prefill": []
     },
     "chunkSize": {
       "title": "Chunk Size",
       "type": "integer",
       "description": "Maximum number of characters per chunk for RAG processing. Larger chunks provide more context but may exceed model limits.",
       "default": 1000,
+      "prefill": 1000,
       "minimum": 100,
       "maximum": 8000
     },
@@ -56,6 +64,7 @@
       "type": "integer",
       "description": "Number of characters to overlap between consecutive chunks to preserve context across boundaries.",
       "default": 100,
+      "prefill": 100,
       "minimum": 0,
       "maximum": 500
     },
@@ -75,7 +84,8 @@
       "title": "Max Requests Per Crawl",
       "type": "integer",
       "description": "Maximum number of pages to process in a single crawl run",
-      "default": 1000,
+      "default": 5,
+      "prefill": 5,
       "minimum": 1,
       "maximum": 10000
     },
@@ -83,7 +93,8 @@
       "title": "Request Delay (ms)",
       "type": "integer",
       "description": "Delay between requests in milliseconds to be respectful to target servers",
-      "default": 1000,
+      "default": 500,
+      "prefill": 500,
       "minimum": 0,
       "maximum": 10000
     }
