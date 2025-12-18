@@ -1,57 +1,6 @@
 {
     "actorSpecification": 1,
-    "fields": {
-        "url": {
-            "title": "Source URL",
-            "type": "string",
-            "description": "The original URL that was crawled and processed"
-        },
-        "title": {
-            "title": "Page Title",
-            "type": "string",
-            "description": "The title of the webpage"
-        },
-        "status": {
-            "title": "Processing Status",
-            "type": "string",
-            "description": "Status of the content extraction process (success, extraction_failed, chunking_failed, error)"
-        },
-        "extractionMethod": {
-            "title": "Extraction Method",
-            "type": "string",
-            "description": "The method used to extract clean content (readability, fallback)"
-        },
-        "totalChunks": {
-            "title": "Total Chunks",
-            "type": "integer",
-            "description": "Number of text chunks generated from the content"
-        },
-        "totalTokens": {
-            "title": "Total Tokens",
-            "type": "integer",
-            "description": "Estimated total number of tokens across all chunks"
-        },
-        "totalWords": {
-            "title": "Total Words",
-            "type": "integer",
-            "description": "Total word count across all chunks"
-        },
-        "chunks": {
-            "title": "Content Chunks",
-            "type": "array",
-            "description": "Array of processed content chunks ready for vector database ingestion"
-        },
-        "timestamp": {
-            "title": "Processing Timestamp",
-            "type": "string",
-            "description": "When this content was processed"
-        },
-        "error": {
-            "title": "Error Message",
-            "type": "string",
-            "description": "Error message if processing failed"
-        }
-    },
+    "fields": {},
     "views": {
         "overview": {
             "title": "Crawled Pages Overview",
@@ -102,43 +51,6 @@
                     "timestamp": {
                         "label": "Processed At",
                         "format": "text"
-                    }
-                }
-            }
-        },
-        "chunks": {
-            "title": "Content Chunks Detail",
-            "description": "Detailed view of individual content chunks for RAG processing",
-            "transformation": {
-                "fields": [
-                    "url",
-                    "title",
-                    "totalChunks",
-                    "totalTokens",
-                    "chunks"
-                ],
-                "flatten": [
-                    "chunks"
-                ]
-            },
-            "display": {
-                "component": "table",
-                "properties": {
-                    "url": {
-                        "label": "Source URL",
-                        "format": "link"
-                    },
-                    "title": {
-                        "label": "Page Title",
-                        "format": "text"
-                    },
-                    "totalChunks": {
-                        "label": "Total Chunks",
-                        "format": "number"
-                    },
-                    "totalTokens": {
-                        "label": "Total Tokens",
-                        "format": "number"
                     }
                 }
             }
