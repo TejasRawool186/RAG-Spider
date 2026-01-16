@@ -1,12 +1,9 @@
 {
     "actorSpecification": 1,
-    "title": "RAG Spider Dataset Schema",
-    "description": "Schema for the RAG-ready Markdown chunks extracted from web pages",
     "fields": {},
     "views": {
         "overview": {
-            "title": "📊 Crawled Pages Overview",
-            "description": "Overview of all crawled pages with their processing status and chunk counts",
+            "title": "Crawled Pages Overview",
             "transformation": {
                 "fields": [
                     "url",
@@ -14,8 +11,6 @@
                     "status",
                     "totalChunks",
                     "totalTokens",
-                    "totalWords",
-                    "extractionMethod",
                     "timestamp"
                 ]
             },
@@ -41,72 +36,6 @@
                     "totalTokens": {
                         "label": "Tokens",
                         "format": "number"
-                    },
-                    "totalWords": {
-                        "label": "Words",
-                        "format": "number"
-                    },
-                    "extractionMethod": {
-                        "label": "Method",
-                        "format": "text"
-                    },
-                    "timestamp": {
-                        "label": "Processed At",
-                        "format": "text"
-                    }
-                }
-            }
-        },
-        "details": {
-            "title": "📝 Full Results",
-            "description": "Complete crawl results with all data including chunks",
-            "transformation": {
-                "fields": [
-                    "url",
-                    "title",
-                    "status",
-                    "totalChunks",
-                    "totalTokens",
-                    "totalWords",
-                    "extractionMethod",
-                    "chunks",
-                    "timestamp"
-                ]
-            },
-            "display": {
-                "component": "table",
-                "properties": {
-                    "url": {
-                        "label": "Source URL",
-                        "format": "link"
-                    },
-                    "title": {
-                        "label": "Page Title",
-                        "format": "text"
-                    },
-                    "status": {
-                        "label": "Status",
-                        "format": "text"
-                    },
-                    "totalChunks": {
-                        "label": "Chunks",
-                        "format": "number"
-                    },
-                    "totalTokens": {
-                        "label": "Tokens",
-                        "format": "number"
-                    },
-                    "totalWords": {
-                        "label": "Words",
-                        "format": "number"
-                    },
-                    "extractionMethod": {
-                        "label": "Method",
-                        "format": "text"
-                    },
-                    "chunks": {
-                        "label": "Content Chunks",
-                        "format": "object"
                     },
                     "timestamp": {
                         "label": "Processed At",
