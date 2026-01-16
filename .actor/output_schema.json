@@ -1,11 +1,25 @@
 {
     "actorOutputSchemaVersion": 1,
     "title": "RAG Spider Output",
+    "description": "Clean, RAG-ready Markdown chunks extracted from web pages for AI training datasets",
     "properties": {
-        "results": {
+        "overview": {
             "type": "string",
-            "title": "Crawled Pages & Chunks",
+            "title": "📊 Crawled Pages Overview",
+            "description": "Summary of all crawled pages with status, chunk counts, and token estimates",
+            "template": "{{links.apiDefaultDatasetUrl}}/items?view=overview"
+        },
+        "allResults": {
+            "type": "string",
+            "title": "📝 All RAG Chunks",
+            "description": "Complete dataset with all extracted content chunks ready for vector databases",
             "template": "{{links.apiDefaultDatasetUrl}}/items"
+        },
+        "statistics": {
+            "type": "string",
+            "title": "📈 Processing Statistics",
+            "description": "Detailed runtime statistics and performance metrics",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/PROCESSING_STATISTICS"
         }
     }
 }
