@@ -6,12 +6,12 @@
         "statistics": {
             "title": "📈 Processing Statistics",
             "description": "Runtime statistics and performance metrics from the crawl",
-            "keyPattern": "*STATISTICS*"
+            "keyPrefix": "PROCESSING_"
         },
         "errors": {
             "title": "⚠️ Error Logs",
             "description": "Validation errors and debugging information",
-            "keyPattern": "*ERRORS*"
+            "keyPrefix": "INPUT_"
         }
     }
 }
