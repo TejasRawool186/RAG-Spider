@@ -57,29 +57,20 @@
                 }
             }
         },
-        "chunks": {
-            "title": "📝 RAG Chunks",
-            "description": "Detailed view of all extracted content chunks ready for vector databases",
+        "details": {
+            "title": "📝 Full Results",
+            "description": "Complete crawl results with all data including chunks",
             "transformation": {
-                "flatten": [
-                    {
-                        "field": "chunks",
-                        "fields": [
-                            "content",
-                            "tokens",
-                            "wordCount",
-                            "chunkIndex",
-                            "chunkId"
-                        ]
-                    }
-                ],
                 "fields": [
                     "url",
                     "title",
-                    "chunks.chunkIndex",
-                    "chunks.content",
-                    "chunks.tokens",
-                    "chunks.wordCount"
+                    "status",
+                    "totalChunks",
+                    "totalTokens",
+                    "totalWords",
+                    "extractionMethod",
+                    "chunks",
+                    "timestamp"
                 ]
             },
             "display": {
@@ -93,58 +84,32 @@
                         "label": "Page Title",
                         "format": "text"
                     },
-                    "chunks.chunkIndex": {
-                        "label": "#",
-                        "format": "number"
-                    },
-                    "chunks.content": {
-                        "label": "Content",
-                        "format": "text"
-                    },
-                    "chunks.tokens": {
-                        "label": "Tokens",
-                        "format": "number"
-                    },
-                    "chunks.wordCount": {
-                        "label": "Words",
-                        "format": "number"
-                    }
-                }
-            }
-        },
-        "errors": {
-            "title": "❌ Failed Pages",
-            "description": "View of pages that failed during processing",
-            "transformation": {
-                "fields": [
-                    "url",
-                    "title",
-                    "status",
-                    "error",
-                    "timestamp"
-                ]
-            },
-            "display": {
-                "component": "table",
-                "properties": {
-                    "url": {
-                        "label": "URL",
-                        "format": "link"
-                    },
-                    "title": {
-                        "label": "Page Title",
-                        "format": "text"
-                    },
                     "status": {
                         "label": "Status",
                         "format": "text"
                     },
-                    "error": {
-                        "label": "Error",
+                    "totalChunks": {
+                        "label": "Chunks",
+                        "format": "number"
+                    },
+                    "totalTokens": {
+                        "label": "Tokens",
+                        "format": "number"
+                    },
+                    "totalWords": {
+                        "label": "Words",
+                        "format": "number"
+                    },
+                    "extractionMethod": {
+                        "label": "Method",
                         "format": "text"
                     },
+                    "chunks": {
+                        "label": "Content Chunks",
+                        "format": "object"
+                    },
                     "timestamp": {
-                        "label": "Time",
+                        "label": "Processed At",
                         "format": "text"
                     }
                 }
