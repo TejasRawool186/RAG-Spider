@@ -1,5 +1,5 @@
 {
-    "actorSpecification": 1,
+    "actorKeyValueStoreSchemaVersion": 1,
     "title": "RAG Spider Key-Value Store Schema",
     "description": "Schema for organizing keys stored by RAG Spider in the key-value store",
     "collections": {
