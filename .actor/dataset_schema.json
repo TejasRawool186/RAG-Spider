@@ -1,9 +1,101 @@
 {
     "actorSpecification": 1,
-    "fields": {},
+    "title": "RAG Spider Dataset Schema",
+    "description": "Schema for the RAG-ready Markdown chunks extracted from web pages",
+    "fields": {
+        "url": {
+            "type": "string",
+            "title": "Source URL",
+            "description": "The URL of the crawled page",
+            "format": "uri"
+        },
+        "title": {
+            "type": "string",
+            "title": "Page Title",
+            "description": "Title of the crawled page"
+        },
+        "status": {
+            "type": "string",
+            "title": "Processing Status",
+            "description": "Status of the page processing (success, extraction_failed, chunking_failed, error)",
+            "enum": [
+                "success",
+                "extraction_failed",
+                "chunking_failed",
+                "error",
+                "request_failed"
+            ]
+        },
+        "extractionMethod": {
+            "type": "string",
+            "title": "Extraction Method",
+            "description": "Method used to extract content (readability, fallback, etc.)"
+        },
+        "totalChunks": {
+            "type": "integer",
+            "title": "Total Chunks",
+            "description": "Number of text chunks generated from this page"
+        },
+        "totalTokens": {
+            "type": "integer",
+            "title": "Total Tokens",
+            "description": "Estimated total token count for all chunks"
+        },
+        "totalWords": {
+            "type": "integer",
+            "title": "Total Words",
+            "description": "Total word count across all chunks"
+        },
+        "chunks": {
+            "type": "array",
+            "title": "Content Chunks",
+            "description": "Array of RAG-ready text chunks with metadata",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "type": "string",
+                        "title": "Chunk Content",
+                        "description": "The actual text content of the chunk in Markdown format"
+                    },
+                    "tokens": {
+                        "type": "integer",
+                        "title": "Token Count",
+                        "description": "Estimated token count for this chunk"
+                    },
+                    "wordCount": {
+                        "type": "integer",
+                        "title": "Word Count",
+                        "description": "Word count for this chunk"
+                    },
+                    "chunkIndex": {
+                        "type": "integer",
+                        "title": "Chunk Index",
+                        "description": "Zero-based index of this chunk within the page"
+                    },
+                    "chunkId": {
+                        "type": "string",
+                        "title": "Chunk ID",
+                        "description": "Unique identifier for this chunk"
+                    }
+                }
+            }
+        },
+        "timestamp": {
+            "type": "string",
+            "title": "Processed At",
+            "description": "ISO timestamp when the page was processed",
+            "format": "date-time"
+        },
+        "error": {
+            "type": "string",
+            "title": "Error Message",
+            "description": "Error message if processing failed"
+        }
+    },
     "views": {
         "overview": {
-            "title": "Crawled Pages Overview",
+            "title": "📊 Crawled Pages Overview",
             "description": "Overview of all crawled pages with their processing status and chunk counts",
             "transformation": {
                 "fields": [
@@ -50,6 +142,100 @@
                     },
                     "timestamp": {
                         "label": "Processed At",
+                        "format": "text"
+                    }
+                }
+            }
+        },
+        "chunks": {
+            "title": "📝 RAG Chunks",
+            "description": "Detailed view of all extracted content chunks ready for vector databases",
+            "transformation": {
+                "flatten": [
+                    {
+                        "field": "chunks",
+                        "fields": [
+                            "content",
+                            "tokens",
+                            "wordCount",
+                            "chunkIndex",
+                            "chunkId"
+                        ]
+                    }
+                ],
+                "fields": [
+                    "url",
+                    "title",
+                    "chunks.chunkIndex",
+                    "chunks.content",
+                    "chunks.tokens",
+                    "chunks.wordCount"
+                ]
+            },
+            "display": {
+                "component": "table",
+                "properties": {
+                    "url": {
+                        "label": "Source URL",
+                        "format": "link"
+                    },
+                    "title": {
+                        "label": "Page Title",
+                        "format": "text"
+                    },
+                    "chunks.chunkIndex": {
+                        "label": "#",
+                        "format": "number"
+                    },
+                    "chunks.content": {
+                        "label": "Content",
+                        "format": "text"
+                    },
+                    "chunks.tokens": {
+                        "label": "Tokens",
+                        "format": "number"
+                    },
+                    "chunks.wordCount": {
+                        "label": "Words",
+                        "format": "number"
+                    }
+                }
+            }
+        },
+        "errors": {
+            "title": "❌ Failed Pages",
+            "description": "View of pages that failed during processing",
+            "transformation": {
+                "filter": "status != 'success'",
+                "fields": [
+                    "url",
+                    "title",
+                    "status",
+                    "error",
+                    "timestamp"
+                ]
+            },
+            "display": {
+                "component": "table",
+                "properties": {
+                    "url": {
+                        "label": "URL",
+                        "format": "link"
+                    },
+                    "title": {
+                        "label": "Page Title",
+                        "format": "text"
+                    },
+                    "status": {
+                        "label": "Status",
+                        "format": "text"
+                    },
+                    "error": {
+                        "label": "Error",
+                        "format": "text"
+                    },
+                    "timestamp": {
+                        "label": "Time",
                         "format": "text"
                     }
                 }

@@ -1,0 +1,17 @@
+{
+    "actorSpecification": 1,
+    "title": "RAG Spider Key-Value Store Schema",
+    "description": "Schema for organizing keys stored by RAG Spider in the key-value store",
+    "collections": {
+        "statistics": {
+            "title": "📈 Processing Statistics",
+            "description": "Runtime statistics and performance metrics from the crawl",
+            "keyPattern": "*STATISTICS*"
+        },
+        "errors": {
+            "title": "⚠️ Error Logs",
+            "description": "Validation errors and debugging information",
+            "keyPattern": "*ERRORS*"
+        }
+    }
+}
