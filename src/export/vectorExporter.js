@@ -272,3 +272,5 @@ export async function prepareVectorExports(allChunks = [], options = {}) {
     return summary;
 }
 
+export const generateAndSaveExports = prepareVectorExports;
+
