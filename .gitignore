@@ -52,10 +52,10 @@ jspm_packages/
 logs/
 *.log
 
-# Apify storage
-apify_storage/
-storage/
-.apify/
+# Apify storage (root level only)
+/apify_storage/
+/storage/
+/.apify/
 
 # Development and testing files
 .kiro/
