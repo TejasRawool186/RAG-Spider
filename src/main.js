@@ -154,12 +154,20 @@ try {
 
     // 7. Configure PlaywrightCrawler
     const crawlerConfig = configManager.getCrawlerConfig();
-    const { startUrls: _su, proxyConfiguration: _pc, _requestDelay, ...crawleeOptions } = crawlerConfig;
+    const {
+        startUrls: _su,
+        proxyConfiguration: _pc,
+        requestDelay: _rd,
+        _requestDelay: _drd,
+        ...crawleeOptions
+    } = crawlerConfig;
+
+    const effectiveRequestDelay = _drd || _rd || config.requestDelay || 0;
 
     const crawler = new PlaywrightCrawler({
         ...crawleeOptions,
         proxyConfiguration,
-        maxConcurrency: config.maxConcurrency || 5,
+        maxConcurrency: config.maxConcurrency || crawlerConfig.maxConcurrency || 5,
         maxRequestsPerCrawl: config.maxRequestsPerCrawl,
 
         preNavigationHooks: [
@@ -170,8 +178,8 @@ try {
                     return;
                 }
 
-                if (_requestDelay && _requestDelay > 0 && processingStats.totalRequests > 0) {
-                    await new Promise(r => setTimeout(r, _requestDelay));
+                if (effectiveRequestDelay > 0 && processingStats.totalRequests > 0) {
+                    await new Promise(r => setTimeout(r, effectiveRequestDelay));
                 }
 
                 request.userData = {
@@ -517,7 +525,15 @@ try {
             });
             const dashboardHtml = generateDashboardHtml(dashboardData);
             await Actor.setValue('OUTPUT', dashboardHtml, { contentType: 'text/html' });
-            logger.info('[RAG Spider] Visual dashboard successfully saved to Key-Value Store key "OUTPUT"');
+            
+            try {
+                const defaultKvs = await Actor.openKeyValueStore();
+                const reportUrl = `https://api.apify.com/v2/key-value-stores/${defaultKvs.id}/records/OUTPUT`;
+                logger.info('[RAG Spider] Visual dashboard successfully saved to Key-Value Store key "OUTPUT"');
+                logger.info(`[RAG Spider] Visual report direct link: ${reportUrl}`);
+            } catch {
+                logger.info('[RAG Spider] Visual dashboard successfully saved to Key-Value Store key "OUTPUT"');
+            }
         } catch (dashErr) {
             logger.warn('[RAG Spider] Visual dashboard generation warning:', { error: dashErr.message });
         }
