@@ -77,13 +77,20 @@ export class RetryPolicy {
         this.config = { 
             maxRetries: 3, 
             baseDelay: 1000, 
+            maxDelay: 30000,
+            backoffMultiplier: 2,
+            strategy: 'exponential_backoff',
+            jitter: false,
             ...config 
         };
         this.attempts = new Map();
     }
     
     calculateDelay(attempt) {
-        return this.config.baseDelay * attempt;
+        const multiplier = this.config.backoffMultiplier || 2;
+        const delay = this.config.baseDelay * Math.pow(multiplier, attempt - 1);
+        const max = this.config.maxDelay || 30000;
+        return Math.min(max, delay);
     }
     
     shouldRetry(error, operationId) {
@@ -101,12 +108,12 @@ export class RetryPolicy {
                 this.attempts.delete(operationId);
                 return result;
             } catch (error) {
-                attempts++;
-                this.attempts.set(operationId, attempts);
-                
                 if (!this.shouldRetry(error, operationId)) {
+                    this.attempts.delete(operationId);
                     throw error;
                 }
+                attempts++;
+                this.attempts.set(operationId, attempts);
                 
                 const delay = this.calculateDelay(attempts);
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -136,7 +143,7 @@ export class ErrorHandler {
         } catch (error) {
             this.updateErrorStats(error);
             console.warn(`Error in ${operationId}:`, error.message);
-            return { recovered: false, skipped: true, reason: error.message };
+            throw error;
         }
     }
     
@@ -145,6 +152,8 @@ export class ErrorHandler {
         if (error instanceof CrawlerError) {
             const categoryCount = this.errorStats.errorsByCategory.get(error.category) || 0;
             this.errorStats.errorsByCategory.set(error.category, categoryCount + 1);
+            const severityCount = this.errorStats.errorsBySeverity.get(error.severity) || 0;
+            this.errorStats.errorsBySeverity.set(error.severity, severityCount + 1);
         }
     }
     
@@ -179,17 +188,17 @@ export function createErrorHandler(config = {}) {
  * Utility function to categorize common errors
  */
 export function categorizeError(error) {
-    const message = error.message.toLowerCase();
+    const message = (error.message || '').toLowerCase();
     
-    if (message.includes('network') || message.includes('econnreset') || message.includes('enotfound')) {
+    if (message.includes('network') || message.includes('econnreset') || message.includes('enotfound') || message.includes('socket hang up')) {
         return ErrorCategory.NETWORK;
     }
     
-    if (message.includes('timeout') || message.includes('etimedout')) {
+    if (message.includes('timeout') || message.includes('etimedout') || message.includes('timed out')) {
         return ErrorCategory.TIMEOUT;
     }
     
-    if (message.includes('rate limit') || message.includes('too many requests')) {
+    if (message.includes('rate limit') || message.includes('too many requests') || message.includes('429')) {
         return ErrorCategory.RATE_LIMIT;
     }
     
