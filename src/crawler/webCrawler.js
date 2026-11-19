@@ -267,7 +267,7 @@ export class WebCrawler {
      */
     async initialize() {
         try {
-            console.log('🚀 Initializing web crawler...');
+            console.log('Initializing web crawler...');
             
             // Initialize Apify Dataset for storing results
             this.dataset = await Dataset.open();
@@ -295,10 +295,10 @@ export class WebCrawler {
                 }
             });
             
-            console.log('✅ Web crawler initialized successfully');
+            console.log('Web crawler initialized successfully');
             
         } catch (error) {
-            console.error('❌ Failed to initialize web crawler:', error.message);
+            console.error('Failed to initialize web crawler:', error.message);
             throw new WebCrawlerError(`Failed to initialize crawler: ${error.message}`, '', error);
         }
     }
@@ -316,7 +316,7 @@ export class WebCrawler {
         }
         
         try {
-            console.log(`🕷️ Starting crawl with ${startUrls.length} URLs...`);
+            console.log(`[WebCrawler] Starting crawl with ${startUrls.length} URLs...`);
             
             // Add base URLs to filter for depth calculation
             this.urlFilter.addBaseUrls(startUrls);
@@ -327,15 +327,15 @@ export class WebCrawler {
             // Mark crawling as complete
             this.stats.complete();
             
-            console.log(`✅ Crawling completed in ${this.stats.getDuration()}s`);
-            console.log(`📊 Processed ${this.stats.processedPages} pages, extracted ${this.stats.extractedChunks} chunks`);
+            console.log(`[WebCrawler] Crawling completed in ${this.stats.getDuration()}s`);
+            console.log(`[WebCrawler] Processed ${this.stats.processedPages} pages, extracted ${this.stats.extractedChunks} chunks`);
             
             return this.stats;
             
         } catch (error) {
             this.stats.complete();
             this.stats.addError(error);
-            console.error('❌ Crawling failed:', error.message);
+            console.error('[WebCrawler] Crawling failed:', error.message);
             throw new WebCrawlerError(`Crawling failed: ${error.message}`, '', error);
         }
     }
@@ -378,7 +378,7 @@ export class WebCrawler {
         if (result && result.skipped) {
             this.stats.addWarning(`Page skipped due to: ${result.reason}`, url);
         } else if (result && result.recovered) {
-            console.log(`✅ Recovered from error using: ${result.method}`);
+            console.log(`[WebCrawler] Recovered from error using: ${result.method}`);
         }
     }
 
@@ -489,73 +489,45 @@ export class WebCrawler {
      * Core content processing logic (wrapped by error handler)
      */
     async processPageContent(url, htmlContent) {
-        console.log(`📄 Processing content for ${url}`);
+        console.log(`Processing content for ${url}`);
         
-        // Extract clean content with fallback handling
-        const extractionResult = await this.extractContentWithFallback(url, htmlContent);
-        
-        if (!extractionResult.success || !extractionResult.markdown) {
-            throw new CrawlerError(
-                'Content extraction failed completely',
-                ErrorCategory.EXTRACTION,
-                ErrorSeverity.MEDIUM,
-                { url, fallbackUsed: extractionResult.fallbackUsed }
-            );
+        try {
+            // Extract clean content with fallback handling
+            const extractionResult = await this.extractContentWithFallback(url, htmlContent);
+            
+            if (!extractionResult.success || !extractionResult.markdown) {
+                this.stats.addWarning(`Content extraction failed for ${url}`);
+                return null;
+            }
+            
+            // Process text (chunk and add metadata)
+            const processingResult = await this.processTextWithRetry(url, extractionResult);
+            
+            if (!processingResult.success || processingResult.chunks.length === 0) {
+                this.stats.addWarning(`Text processing failed for ${url}`);
+                return null;
+            }
+            
+            // Store results in dataset
+            await this.storeResultsWithRetry(url, processingResult);
+            
+            this.stats.processedPages++;
+            this.stats.extractedChunks += processingResult.chunks.length;
+            this.stats.totalTokens += processingResult.tokenEstimation?.totalTokens || 0;
+            
+            return processingResult;
+        } catch (error) {
+            this.stats.addError(error);
+            return null;
         }
-        
-        // Process text (chunk and add metadata)
-        const processingResult = await this.processTextWithRetry(url, extractionResult);
-        
-        if (!processingResult.success || processingResult.chunks.length === 0) {
-            throw new CrawlerError(
-                'Text processing failed',
-                ErrorCategory.PROCESSING,
-                ErrorSeverity.MEDIUM,
-                { url, markdown: extractionResult.markdown?.substring(0, 200) }
-            );
-        }
-        
-        // Store results in dataset
-        await this.storeResultsWithRetry(url, processingResult);
-        
-        this.stats.processedPages++;
-        this.stats.extractedChunks += processingResult.chunks.length;
-        this.stats.totalTokens += processingResult.tokenEstimation?.totalTokens || 0;
-        
-        return processingResult;
     }
 
     /**
      * Extracts content with fallback mechanisms
      */
     async extractContentWithFallback(url, htmlContent) {
-        try {
-            // Primary extraction attempt
-            const result = await this.contentExtractor.extract(htmlContent, { url });
-            if (result.success && result.markdown) {
-                return result;
-            }
-        } catch (error) {
-            console.warn(`Primary content extraction failed for ${url}, trying fallback`);
-        }
-        
-        // Fallback: try with different extraction settings
-        try {
-            const fallbackResult = await this.contentExtractor.extract(htmlContent, { 
-                url, 
-                fallback: true,
-                minContentLength: 50 // Lower threshold for fallback
-            });
-            
-            if (fallbackResult.success && fallbackResult.markdown) {
-                fallbackResult.fallbackUsed = true;
-                return fallbackResult;
-            }
-        } catch (error) {
-            console.warn(`Fallback content extraction also failed for ${url}`);
-        }
-        
-        return { success: false, fallbackUsed: true };
+        const result = await this.contentExtractor.extract(htmlContent, { url });
+        return result || { success: false };
     }
 
     /**
@@ -706,13 +678,13 @@ export class WebCrawler {
         // Handle rate limiting with proxy rotation
         if (category === ErrorCategory.RATE_LIMIT && this.proxyRotationEnabled) {
             await this.rotateProxy();
-            console.log('🔄 Rotated proxy due to rate limiting');
+            console.log('[WebCrawler] Rotated proxy due to rate limiting');
         }
         
         // Handle memory issues
         if (category === ErrorCategory.MEMORY) {
             await this.performMemoryCleanup();
-            console.log('🧹 Performed memory cleanup due to memory error');
+            console.log('[WebCrawler] Performed memory cleanup due to memory error');
         }
     }
 
@@ -737,8 +709,8 @@ export class WebCrawler {
      * Logs failed requests with appropriate detail
      */
     logFailedRequest(error, url) {
-        const emoji = this.getErrorEmoji(error.category);
-        const message = `${emoji} Request failed for ${url}: ${error.message}`;
+        const prefix = this.getErrorPrefix(error.category);
+        const message = `${prefix} Request failed for ${url}: ${error.message}`;
         
         switch (error.severity) {
             case ErrorSeverity.HIGH:
@@ -755,24 +727,24 @@ export class WebCrawler {
     }
 
     /**
-     * Gets appropriate emoji for error category
+     * Gets appropriate prefix tag for error category
      */
-    getErrorEmoji(category) {
+    getErrorPrefix(category) {
         switch (category) {
             case ErrorCategory.NETWORK:
-                return '🌐';
+                return '[NETWORK]';
             case ErrorCategory.TIMEOUT:
-                return '⏱️';
+                return '[TIMEOUT]';
             case ErrorCategory.RATE_LIMIT:
-                return '🚦';
+                return '[RATE_LIMIT]';
             case ErrorCategory.MEMORY:
-                return '💾';
+                return '[MEMORY]';
             case ErrorCategory.PARSING:
-                return '📝';
+                return '[PARSING]';
             case ErrorCategory.EXTRACTION:
-                return '🔍';
+                return '[EXTRACTION]';
             default:
-                return '❌';
+                return '[ERROR]';
         }
     }
 
@@ -837,7 +809,7 @@ export class WebCrawler {
             if (this.crawler && typeof this.crawler.teardown === 'function') {
                 await this.crawler.teardown();
             }
-            console.log('🧹 Crawler cleanup completed');
+            console.log('Crawler cleanup completed');
         } catch (error) {
             console.error('Failed to cleanup crawler:', error.message);
         }

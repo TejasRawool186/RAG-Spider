@@ -143,7 +143,7 @@ export class IntegratedCrawler {
         
         return await this.errorHandler.executeWithErrorHandling(
             async () => {
-                console.log('🔧 Initializing integrated crawler components...');
+                console.log('[IntegratedCrawler] Initializing integrated crawler components...');
                 
                 // Initialize content extractor
                 this.contentExtractor = new ContentExtractor(this.options.extractionOptions);
@@ -182,7 +182,7 @@ export class IntegratedCrawler {
                 // Initialize crawler
                 await this.crawler.initialize();
                 
-                console.log('✅ Integrated crawler initialized successfully');
+                console.log('[IntegratedCrawler] Integrated crawler initialized successfully');
             },
             operationId,
             { 
@@ -211,45 +211,59 @@ export class IntegratedCrawler {
         this.startTime = new Date();
         const operationId = `crawl-and-process-${startUrls.length}-urls`;
         
-        const result = await this.errorHandler.executeWithErrorHandling(
-            async () => {
-                console.log(`🚀 Starting integrated crawl and processing for ${startUrls.length} URLs...`);
-                
-                // Start crawling with integrated processing
-                const crawlingStats = await this.crawler.crawl(startUrls);
-                
-                // Calculate final statistics
+        try {
+            const result = await this.errorHandler.executeWithErrorHandling(
+                async () => {
+                    console.log(`[IntegratedCrawler] Starting integrated crawl and processing for ${startUrls.length} URLs...`);
+                    
+                    // Start crawling with integrated processing
+                    const crawlingStats = await this.crawler.crawl(startUrls);
+                    
+                    // Calculate final statistics
+                    const duration = Math.round((new Date() - this.startTime) / 1000);
+                    const result = this.buildIntegrationResult(crawlingStats, duration);
+                    
+                    console.log(`[IntegratedCrawler] Integrated crawling completed in ${duration}s`);
+                    console.log(`[IntegratedCrawler] Processed ${result.totalPages} pages, extracted ${result.totalChunks} chunks`);
+                    
+                    return result;
+                },
+                operationId,
+                { 
+                    startUrls: startUrls.slice(0, 3), // Log first few URLs for context
+                    urlCount: startUrls.length
+                }
+            );
+            
+            // Handle error recovery results
+            if (result && result.skipped) {
                 const duration = Math.round((new Date() - this.startTime) / 1000);
-                const result = this.buildIntegrationResult(crawlingStats, duration);
+                console.error(`[IntegratedCrawler] Integrated crawling skipped due to: ${result.reason}`);
                 
-                console.log(`✅ Integrated crawling completed in ${duration}s`);
-                console.log(`📊 Processed ${result.totalPages} pages, extracted ${result.totalChunks} chunks`);
-                
-                return result;
-            },
-            operationId,
-            { 
-                startUrls: startUrls.slice(0, 3), // Log first few URLs for context
-                urlCount: startUrls.length
+                return new IntegrationResult({
+                    success: false,
+                    errors: [{ 
+                        message: `Crawling skipped: ${result.reason}`, 
+                        timestamp: new Date().toISOString() 
+                    }],
+                    duration
+                });
             }
-        );
-        
-        // Handle error recovery results
-        if (result && result.skipped) {
+            
+            return result;
+        } catch (error) {
             const duration = Math.round((new Date() - this.startTime) / 1000);
-            console.error(`❌ Integrated crawling skipped due to: ${result.reason}`);
+            console.error(`[IntegratedCrawler] Integrated crawling failed: ${error.message}`);
             
             return new IntegrationResult({
                 success: false,
                 errors: [{ 
-                    message: `Crawling skipped: ${result.reason}`, 
+                    message: error.message, 
                     timestamp: new Date().toISOString() 
                 }],
                 duration
             });
         }
-        
-        return result;
     }
     
     /**
@@ -257,7 +271,7 @@ export class IntegratedCrawler {
      */
     async processPage(url, htmlContent) {
         try {
-            console.log(`🔄 Processing page through pipeline: ${url}`);
+            console.log(`[IntegratedCrawler] Processing page through pipeline: ${url}`);
             
             // Extract content
             const extractionResult = await this.contentExtractor.extract(htmlContent, { url });
@@ -295,7 +309,7 @@ export class IntegratedCrawler {
             this.processingStats.totalChunks += processingResult.chunks.length;
             this.processingStats.totalTokens += processingResult.tokenEstimation?.totalTokens || 0;
             
-            console.log(`✅ Page processed: ${processingResult.chunks.length} chunks, ${processingResult.tokenEstimation?.totalTokens || 0} tokens`);
+            console.log(`[IntegratedCrawler] Page processed: ${processingResult.chunks.length} chunks, ${processingResult.tokenEstimation?.totalTokens || 0} tokens`);
             
             return {
                 url,
@@ -318,7 +332,7 @@ export class IntegratedCrawler {
                 timestamp: new Date().toISOString()
             });
             
-            console.error(`❌ Failed to process page ${url}:`, error.message);
+            console.error(`[IntegratedCrawler] Failed to process page ${url}:`, error.message);
             return null;
         }
     }
@@ -429,9 +443,9 @@ export class IntegratedCrawler {
             if (this.crawler) {
                 await this.crawler.cleanup();
             }
-            console.log('🧹 Integrated crawler cleanup completed');
+            console.log('[IntegratedCrawler] Integrated crawler cleanup completed');
         } catch (error) {
-            console.error('Failed to cleanup integrated crawler:', error.message);
+            console.error('[IntegratedCrawler] Failed to cleanup integrated crawler:', error.message);
         }
     }
 }
@@ -475,7 +489,7 @@ export async function processSingleUrl(url, options = {}) {
         
         // Fetch the page content (simplified for single URL processing)
         // In a real implementation, this would use Playwright to fetch the page
-        console.log(`📄 Processing single URL: ${url}`);
+        console.log(`[IntegratedCrawler] Processing single URL: ${url}`);
         
         // For now, return a placeholder result
         // This would be implemented with actual page fetching in a complete system
