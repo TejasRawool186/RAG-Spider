@@ -1,6 +1,6 @@
 {
-  "title": "RAG Spider Input Configuration",
-  "description": "Configuration for the RAG Spider web crawler that extracts clean content for AI training",
+  "title": "RAG Spider — Web to Markdown for AI Input Configuration",
+  "description": "Configuration for the enterprise-grade RAG Spider web crawler and document intelligence engine.",
   "type": "object",
   "schemaVersion": 1,
   "properties": {
@@ -9,6 +9,8 @@
       "type": "array",
       "description": "List of URLs where the crawler will start. Supports Apify requestListSources format.",
       "editor": "requestListSources",
+      "sectionCaption": "1. Crawling Configuration",
+      "sectionDescription": "Configure target websites, depth limits, sitemap discovery, and crawling boundaries",
       "items": {
         "type": "object",
         "properties": {
@@ -33,16 +35,16 @@
     "crawlDepth": {
       "title": "Crawl Depth",
       "type": "integer",
-      "description": "Maximum depth to crawl from starting URLs. Set to 1 to crawl only start URLs, 2 to include one level of links, etc.",
+      "description": "Maximum depth to crawl from starting URLs. Set to 1 to crawl only start URLs, 2 to include one level of links.",
       "default": 1,
       "prefill": 1,
       "minimum": 1,
       "maximum": 10
     },
     "includeUrlGlobs": {
-      "title": "Include URL Patterns (Optional)",
+      "title": "Include URL Patterns",
       "type": "array",
-      "description": "Optional glob patterns to limit crawling scope. Leave empty to crawl all discovered links. Only URLs matching these patterns will be processed. Example: ['https://docs.example.com/**']",
+      "description": "Optional glob patterns to limit crawling scope. Example: ['https://docs.example.com/**']",
       "editor": "stringList",
       "items": {
         "type": "string"
@@ -50,23 +52,57 @@
       "default": [],
       "prefill": []
     },
-    "chunkSize": {
-      "title": "Chunk Size",
-      "type": "integer",
-      "description": "Maximum number of characters per chunk for RAG processing. Larger chunks provide more context but may exceed model limits.",
-      "default": 1000,
-      "prefill": 1000,
-      "minimum": 100,
-      "maximum": 8000
+    "excludeUrlGlobs": {
+      "title": "Exclude URL Patterns",
+      "type": "array",
+      "description": "Glob patterns for URLs to exclude from crawling. Example: ['**/tag/**', '**/author/**']",
+      "editor": "stringList",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "prefill": []
     },
-    "chunkOverlap": {
-      "title": "Chunk Overlap",
+    "sitemapDiscovery": {
+      "title": "Enable Sitemap Discovery",
+      "type": "boolean",
+      "description": "Automatically discover and parse sitemaps from robots.txt and /sitemap.xml",
+      "default": true,
+      "prefill": true
+    },
+    "respectRobotsTxt": {
+      "title": "Respect robots.txt",
+      "type": "boolean",
+      "description": "Follow robots.txt directives and crawl-delay instructions",
+      "default": true,
+      "prefill": true
+    },
+    "maxRequestsPerCrawl": {
+      "title": "Max Requests Per Crawl",
       "type": "integer",
-      "description": "Number of characters to overlap between consecutive chunks to preserve context across boundaries.",
-      "default": 100,
-      "prefill": 100,
+      "description": "Maximum number of pages/documents to process in a single crawl run",
+      "default": 5,
+      "prefill": 5,
+      "minimum": 1,
+      "maximum": 10000
+    },
+    "requestDelay": {
+      "title": "Request Delay (ms)",
+      "type": "integer",
+      "description": "Delay between requests in milliseconds to respect target servers",
+      "default": 500,
+      "prefill": 500,
       "minimum": 0,
-      "maximum": 500
+      "maximum": 10000
+    },
+    "maxConcurrency": {
+      "title": "Max Concurrency",
+      "type": "integer",
+      "description": "Maximum number of parallel browser tabs/requests",
+      "default": 5,
+      "prefill": 5,
+      "minimum": 1,
+      "maximum": 20
     },
     "proxyConfiguration": {
       "title": "Proxy Configuration",
@@ -80,23 +116,308 @@
         "useApifyProxy": true
       }
     },
-    "maxRequestsPerCrawl": {
-      "title": "Max Requests Per Crawl",
-      "type": "integer",
-      "description": "Maximum number of pages to process in a single crawl run",
-      "default": 5,
-      "prefill": 5,
-      "minimum": 1,
-      "maximum": 10000
+    "enabledFormats": {
+      "title": "Enabled Document Formats",
+      "type": "array",
+      "description": "List of document formats to ingest and parse",
+      "editor": "stringList",
+      "sectionCaption": "2. Multi-Format Document Ingestion",
+      "sectionDescription": "Enable multi-format parsing for documents, office files, and tables",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "html",
+        "pdf",
+        "docx",
+        "txt",
+        "md",
+        "csv",
+        "json",
+        "xml"
+      ],
+      "prefill": [
+        "html",
+        "pdf",
+        "docx",
+        "txt",
+        "md",
+        "csv",
+        "json",
+        "xml"
+      ]
     },
-    "requestDelay": {
-      "title": "Request Delay (ms)",
+    "enableReadability": {
+      "title": "Enable Readability Filtering",
+      "type": "boolean",
+      "description": "Strip navigation, sidebars, headers, and boilerplate using Mozilla Readability",
+      "default": true,
+      "prefill": true
+    },
+    "enableImageMetadata": {
+      "title": "Extract Image & Diagram Metadata",
+      "type": "boolean",
+      "description": "Extract image dimensions, alt text, captions, and detect technical diagrams",
+      "default": true,
+      "prefill": true
+    },
+    "enableStructuredData": {
+      "title": "Extract Structured Data (JSON-LD, OG)",
+      "type": "boolean",
+      "description": "Extract OpenGraph, Twitter Cards, Schema.org JSON-LD entities, and canonical URLs",
+      "default": true,
+      "prefill": true
+    },
+    "preserveCodeBlocks": {
+      "title": "Preserve Code Blocks & Syntax",
+      "type": "boolean",
+      "description": "Preserve syntax fences, language annotations, and prevent code mutilation",
+      "default": true,
+      "prefill": true
+    },
+    "preserveTables": {
+      "title": "Preserve Data Tables",
+      "type": "boolean",
+      "description": "Preserve structured Markdown tables and tabular data",
+      "default": true,
+      "prefill": true
+    },
+    "chunkingStrategy": {
+      "title": "Semantic Chunking Strategy",
+      "type": "string",
+      "description": "Algorithm used to partition documents into RAG-ready chunks",
+      "editor": "select",
+      "sectionCaption": "3. Semantic Chunking & Enrichment",
+      "sectionDescription": "Select RAG-optimized chunking strategy and token limits",
+      "default": "recursive",
+      "prefill": "recursive",
+      "enum": [
+        "recursive",
+        "fixed",
+        "paragraph",
+        "sentence",
+        "heading_markdown",
+        "code_block_aware",
+        "table_aware",
+        "doc_section"
+      ],
+      "enumTitles": [
+        "Recursive Character Chunking (Default)",
+        "Fixed-Size Character Chunking",
+        "Paragraph-Aware Chunking",
+        "Sentence-Aware Chunking",
+        "Heading-Aware Markdown Chunking",
+        "Code-Block-Aware Chunking",
+        "Table-Aware Chunking",
+        "Documentation-Section Chunking"
+      ]
+    },
+    "chunkSize": {
+      "title": "Chunk Size (Characters)",
       "type": "integer",
-      "description": "Delay between requests in milliseconds to be respectful to target servers",
-      "default": 500,
-      "prefill": 500,
+      "description": "Maximum number of characters per chunk for RAG processing",
+      "default": 1000,
+      "prefill": 1000,
+      "minimum": 100,
+      "maximum": 8000
+    },
+    "chunkOverlap": {
+      "title": "Chunk Overlap (Characters)",
+      "type": "integer",
+      "description": "Number of characters to overlap between consecutive chunks to preserve context",
+      "default": 100,
+      "prefill": 100,
       "minimum": 0,
-      "maximum": 10000
+      "maximum": 500
+    },
+    "maxChunkTokens": {
+      "title": "Max Chunk Tokens",
+      "type": "integer",
+      "description": "Upper token ceiling for each chunk to protect LLM context windows",
+      "default": 1000,
+      "prefill": 1000,
+      "minimum": 50,
+      "maximum": 4000
+    },
+    "preserveHeadings": {
+      "title": "Preserve Heading Hierarchy",
+      "type": "boolean",
+      "description": "Include ancestral heading context in each chunk",
+      "default": true,
+      "prefill": true
+    },
+    "enableQualityScoring": {
+      "title": "Enable Content Quality Scoring",
+      "type": "boolean",
+      "description": "Calculate deterministic quality scores (0-100) and letter grades (A+ to F)",
+      "sectionCaption": "4. Quality Scoring & Dataset Validation",
+      "sectionDescription": "Transparent 0-100 quality scoring and automated 13-point dataset health checks",
+      "default": true,
+      "prefill": true
+    },
+    "qualityThreshold": {
+      "title": "Quality Acceptance Threshold",
+      "type": "integer",
+      "description": "Minimum score required for a page to be marked as acceptable quality",
+      "default": 50,
+      "prefill": 50,
+      "minimum": 0,
+      "maximum": 100
+    },
+    "enableDeduplication": {
+      "title": "Enable Duplicate Detection",
+      "type": "boolean",
+      "description": "Detect exact page duplicates and perceptual SimHash near-duplicate chunks",
+      "default": true,
+      "prefill": true
+    },
+    "enableDatasetValidation": {
+      "title": "Enable Dataset Validation",
+      "type": "boolean",
+      "description": "Validate 13+ production criteria (broken sequences, empty chunks, missing metadata)",
+      "default": true,
+      "prefill": true
+    },
+    "crawlMode": {
+      "title": "Crawl Mode",
+      "type": "string",
+      "description": "Select crawl execution mode (full recrawl vs incremental conditional requests)",
+      "editor": "select",
+      "sectionCaption": "5. Incremental Crawling & Change Tracking",
+      "sectionDescription": "Avoid recrawling unchanged pages and detect line-by-line content diffs",
+      "default": "full",
+      "prefill": "full",
+      "enum": [
+        "full",
+        "incremental",
+        "refresh_urls",
+        "refresh_domain"
+      ],
+      "enumTitles": [
+        "Full Crawl (All URLs)",
+        "Incremental Crawl (ETag & Hash diffs)",
+        "Refresh Selected URLs",
+        "Refresh Entire Domain"
+      ]
+    },
+    "enableContentFingerprinting": {
+      "title": "Enable Content Fingerprinting",
+      "type": "boolean",
+      "description": "Generate SHA-256 and SimHash fingerprints for state tracking",
+      "default": true,
+      "prefill": true
+    },
+    "enableChangeDetection": {
+      "title": "Enable Content Change Detection",
+      "type": "boolean",
+      "description": "Detect added/removed lines and modified sections relative to previous snapshots",
+      "default": true,
+      "prefill": true
+    },
+    "enableVersionHistory": {
+      "title": "Persist Version Snapshots",
+      "type": "boolean",
+      "description": "Store historical document snapshots in Key-Value Store for future diffing",
+      "default": false,
+      "prefill": false
+    },
+    "enableLanguageDetection": {
+      "title": "Enable Language Detection",
+      "type": "boolean",
+      "description": "Automatically detect document language (50+ languages supported)",
+      "sectionCaption": "6. Multilingual Intelligence",
+      "sectionDescription": "Deterministic language identification supporting 50+ languages",
+      "default": true,
+      "prefill": true
+    },
+    "targetLanguages": {
+      "title": "Target Languages Filter",
+      "type": "array",
+      "description": "Optional ISO 639-1 language codes to allow. Leave empty to accept all languages.",
+      "editor": "stringList",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "prefill": []
+    },
+    "exportFormat": {
+      "title": "Vector DB Export Format",
+      "type": "string",
+      "description": "Select primary export format for Key-Value Store vector database payloads",
+      "editor": "select",
+      "sectionCaption": "7. Vector DB & Format Exports",
+      "sectionDescription": "Export directly to leading vector databases and JSONL/CSV formats in Key-Value Store",
+      "default": "jsonl",
+      "prefill": "jsonl",
+      "enum": [
+        "jsonl",
+        "qdrant",
+        "chroma",
+        "pinecone",
+        "weaviate",
+        "milvus",
+        "csv"
+      ],
+      "enumTitles": [
+        "Generic JSONL (Newline-Delimited JSON)",
+        "Qdrant (Points Batch Payload)",
+        "Chroma (Document & Metadata Collections)",
+        "Pinecone (Upsert Vector Payloads)",
+        "Weaviate (DocumentChunk Class Objects)",
+        "Milvus (Entity Ingestion Collections)",
+        "Tabular CSV"
+      ]
+    },
+    "exportBatchSize": {
+      "title": "Export Batch Size",
+      "type": "integer",
+      "description": "Number of chunks per export batch",
+      "default": 100,
+      "prefill": 100,
+      "minimum": 10,
+      "maximum": 1000
+    },
+    "generateDashboard": {
+      "title": "Generate Visual Analytics Dashboard",
+      "type": "boolean",
+      "description": "Generate standalone Dark Fintech HTML report saved to Key-Value Store key OUTPUT",
+      "sectionCaption": "8. Visual Analytics Dashboard & Limits",
+      "sectionDescription": "Generate standalone dark fintech HTML report under Key-Value Store key OUTPUT",
+      "default": true,
+      "prefill": true
+    },
+    "dashboardTheme": {
+      "title": "Dashboard Theme",
+      "type": "string",
+      "description": "Theme for the visual analytics dashboard",
+      "editor": "select",
+      "default": "dark",
+      "prefill": "dark",
+      "enum": [
+        "dark",
+        "light"
+      ],
+      "enumTitles": [
+        "Dark Fintech (#090A07 / Neon Lime)",
+        "Clean Light"
+      ]
+    },
+    "maximumDownloadSize": {
+      "title": "Max Download Size (Bytes)",
+      "type": "integer",
+      "description": "Maximum allowed file download size in bytes (default 10 MB)",
+      "default": 10485760,
+      "prefill": 10485760,
+      "minimum": 1048576,
+      "maximum": 104857600
+    },
+    "enableDetailedLogging": {
+      "title": "Enable Detailed Logging",
+      "type": "boolean",
+      "description": "Print verbose debug logs during crawl execution",
+      "default": false,
+      "prefill": false
     }
   },
   "required": [

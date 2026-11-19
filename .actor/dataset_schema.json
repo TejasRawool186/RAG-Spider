@@ -1,48 +1,415 @@
 {
-    "actorSpecification": 1,
-    "fields": {},
-    "views": {
-        "overview": {
-            "title": "Crawled Pages Overview",
-            "transformation": {
-                "fields": [
-                    "url",
-                    "title",
-                    "status",
-                    "totalChunks",
-                    "totalTokens",
-                    "timestamp"
-                ]
+  "actorSpecification": 1,
+  "fields": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": [],
+    "additionalProperties": true,
+    "properties": {
+      "schemaVersion": {
+        "type": "string",
+        "description": "Version of the output dataset record schema",
+        "nullable": true,
+        "example": "1.0.0"
+      },
+      "documentId": {
+        "type": "string",
+        "description": "Deterministic, collision-resistant document identifier",
+        "nullable": true,
+        "example": "doc_a1b2c3d4"
+      },
+      "url": {
+        "type": "string",
+        "description": "Normalized source URL of the crawled document or web page",
+        "nullable": true,
+        "example": "https://docs.example.com/api/getting-started"
+      },
+      "canonicalUrl": {
+        "type": "string",
+        "description": "Canonical URL declared by page or resolved from headers",
+        "nullable": true,
+        "example": "https://docs.example.com/api/getting-started"
+      },
+      "title": {
+        "type": "string",
+        "description": "Extracted document or page title",
+        "nullable": true,
+        "example": "Getting Started with the API"
+      },
+      "format": {
+        "type": "string",
+        "description": "Ingested file or document format (html, pdf, docx, txt, md, csv, json, xml)",
+        "nullable": true,
+        "example": "html"
+      },
+      "extractionMethod": {
+        "type": "string",
+        "description": "Extraction engine used (readability, pdf-text, docx-xml, table-csv)",
+        "nullable": true,
+        "example": "readability"
+      },
+      "status": {
+        "type": "string",
+        "description": "Processing status of the document (success, error, request_failed)",
+        "nullable": true,
+        "example": "success"
+      },
+      "isDuplicate": {
+        "type": "boolean",
+        "description": "Whether this document is a duplicate of a previously crawled page",
+        "nullable": true,
+        "example": false
+      },
+      "duplicateOf": {
+        "type": "string",
+        "description": "URL of the original document if this document is a duplicate",
+        "nullable": true,
+        "example": null
+      },
+      "contentType": {
+        "type": "string",
+        "description": "Deterministic content classification taxonomy type",
+        "nullable": true,
+        "example": "technical_documentation"
+      },
+      "classificationConfidence": {
+        "type": "number",
+        "description": "Confidence score for the deterministic classification (0.0 to 1.0)",
+        "nullable": true,
+        "example": 0.88
+      },
+      "classificationEvidence": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of structural signals supporting the classification",
+        "nullable": true,
+        "example": [
+          "URL contains /docs/",
+          "Contains documentation sidebar nav"
+        ]
+      },
+      "qualityScore": {
+        "type": "integer",
+        "description": "Deterministic content quality score between 0 and 100",
+        "nullable": true,
+        "example": 85
+      },
+      "qualityGrade": {
+        "type": "string",
+        "description": "Letter grade representing content quality (A+, A, B, C, D, F)",
+        "nullable": true,
+        "example": "A"
+      },
+      "qualitySignals": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Positive quality factors detected in the document",
+        "nullable": true,
+        "example": [
+          "Clean heading hierarchy (H1 -> H2)",
+          "High meaningful content ratio (82%)"
+        ]
+      },
+      "qualityWarnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Potential content degradation warnings or noise detections",
+        "nullable": true,
+        "example": []
+      },
+      "language": {
+        "type": "string",
+        "description": "Detected ISO 639-1 language code of the text content",
+        "nullable": true,
+        "example": "en"
+      },
+      "languageConfidence": {
+        "type": "number",
+        "description": "Language identification confidence score (0.0 to 1.0)",
+        "nullable": true,
+        "example": 0.95
+      },
+      "markdown": {
+        "type": "string",
+        "description": "Full extracted and cleaned Markdown text of the document",
+        "nullable": true,
+        "example": "# Getting Started\n\nWelcome to the API reference guide."
+      },
+      "totalChunks": {
+        "type": "integer",
+        "description": "Total number of semantic chunks produced from this document",
+        "nullable": true,
+        "example": 4
+      },
+      "totalTokens": {
+        "type": "integer",
+        "description": "Total estimated tokens across all chunks of this document",
+        "nullable": true,
+        "example": 1420
+      },
+      "totalWords": {
+        "type": "integer",
+        "description": "Total word count across all chunks of this document",
+        "nullable": true,
+        "example": 980
+      },
+      "docStructure": {
+        "type": "object",
+        "description": "Extracted technical documentation structural metadata",
+        "nullable": true,
+        "required": [],
+        "additionalProperties": true,
+        "properties": {
+          "isDocumentation": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "framework": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "section": {
+            "type": "string",
+            "nullable": true
+          },
+          "breadcrumbs": {
+            "type": "array",
+            "items": {
+              "type": "string"
             },
-            "display": {
-                "component": "table",
-                "properties": {
-                    "url": {
-                        "label": "Source URL",
-                        "format": "link"
-                    },
-                    "title": {
-                        "label": "Page Title",
-                        "format": "text"
-                    },
-                    "status": {
-                        "label": "Status",
-                        "format": "text"
-                    },
-                    "totalChunks": {
-                        "label": "Chunks",
-                        "format": "number"
-                    },
-                    "totalTokens": {
-                        "label": "Tokens",
-                        "format": "number"
-                    },
-                    "timestamp": {
-                        "label": "Processed At",
-                        "format": "text"
-                    }
-                }
-            }
+            "nullable": true
+          }
+        },
+        "example": {
+          "isDocumentation": true,
+          "framework": "docusaurus",
+          "version": "v2.0",
+          "section": "Guides",
+          "breadcrumbs": [
+            "Docs",
+            "Guides",
+            "Getting Started"
+          ]
         }
+      },
+      "assets": {
+        "type": "object",
+        "description": "Extracted images and diagrams metadata",
+        "nullable": true,
+        "required": [],
+        "additionalProperties": true,
+        "properties": {
+          "imagesCount": {
+            "type": "integer",
+            "nullable": true
+          },
+          "diagramsCount": {
+            "type": "integer",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "nullable": true
+          }
+        },
+        "example": {
+          "imagesCount": 2,
+          "diagramsCount": 1,
+          "items": []
+        }
+      },
+      "structuredData": {
+        "type": "object",
+        "description": "Extracted JSON-LD and OpenGraph metadata",
+        "nullable": true,
+        "required": [],
+        "additionalProperties": true,
+        "properties": {
+          "openGraph": {
+            "type": "object",
+            "nullable": true,
+            "required": [],
+            "additionalProperties": true
+          },
+          "jsonLdTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "example": {
+          "openGraph": {
+            "title": "Getting Started"
+          },
+          "jsonLdTypes": [
+            "TechArticle"
+          ]
+        }
+      },
+      "chunks": {
+        "type": "array",
+        "description": "List of enriched semantic chunks with metadata for RAG ingestion",
+        "nullable": true,
+        "items": {
+          "type": "object",
+          "required": [],
+          "additionalProperties": true,
+          "properties": {
+            "chunkId": {
+              "type": "string",
+              "nullable": true
+            },
+            "documentId": {
+              "type": "string",
+              "nullable": true
+            },
+            "content": {
+              "type": "string",
+              "nullable": true
+            },
+            "chunkIndex": {
+              "type": "integer",
+              "nullable": true
+            },
+            "totalChunks": {
+              "type": "integer",
+              "nullable": true
+            },
+            "tokens": {
+              "type": "integer",
+              "nullable": true
+            },
+            "wordCount": {
+              "type": "integer",
+              "nullable": true
+            },
+            "charCount": {
+              "type": "integer",
+              "nullable": true
+            },
+            "previousChunkId": {
+              "type": "string",
+              "nullable": true
+            },
+            "nextChunkId": {
+              "type": "string",
+              "nullable": true
+            },
+            "metadata": {
+              "type": "object",
+              "nullable": true,
+              "required": [],
+              "additionalProperties": true
+            }
+          }
+        },
+        "example": [
+          {
+            "chunkId": "chunk_a1b2c3d4_0_e5f6g7h8",
+            "documentId": "doc_a1b2c3d4",
+            "content": "# Getting Started\n\nWelcome to the API.",
+            "chunkIndex": 0,
+            "totalChunks": 1,
+            "tokens": 12,
+            "wordCount": 7,
+            "charCount": 38,
+            "previousChunkId": null,
+            "nextChunkId": null,
+            "metadata": {
+              "sourceUrl": "https://docs.example.com",
+              "documentTitle": "Getting Started"
+            }
+          }
+        ]
+      },
+      "extractedAt": {
+        "type": "string",
+        "description": "ISO 8601 timestamp when this record was processed",
+        "nullable": true,
+        "example": "2026-11-19T14:30:00.000Z"
+      }
     }
+  },
+  "views": {
+    "overview": {
+      "title": "Crawled Pages Overview",
+      "description": "Comprehensive document intelligence summary",
+      "transformation": {
+        "fields": [
+          "url",
+          "title",
+          "format",
+          "contentType",
+          "qualityGrade",
+          "qualityScore",
+          "totalChunks",
+          "totalTokens",
+          "language",
+          "status",
+          "extractedAt"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "url": {
+            "label": "Source URL",
+            "format": "link"
+          },
+          "title": {
+            "label": "Title",
+            "format": "text"
+          },
+          "format": {
+            "label": "Format",
+            "format": "text"
+          },
+          "contentType": {
+            "label": "Type",
+            "format": "text"
+          },
+          "qualityGrade": {
+            "label": "Grade",
+            "format": "text"
+          },
+          "qualityScore": {
+            "label": "Quality Score",
+            "format": "number"
+          },
+          "totalChunks": {
+            "label": "Chunks",
+            "format": "number"
+          },
+          "totalTokens": {
+            "label": "Tokens",
+            "format": "number"
+          },
+          "language": {
+            "label": "Lang",
+            "format": "text"
+          },
+          "status": {
+            "label": "Status",
+            "format": "text"
+          },
+          "extractedAt": {
+            "label": "Crawled At",
+            "format": "date"
+          }
+        }
+      }
+    }
+  }
 }

@@ -1,27 +1,29 @@
 {
   "actorSpecification": 1,
   "name": "rag-spider",
-  "title": "RAG Spider - Web to Markdown for AI",
-  "description": "High-performance web crawler that extracts clean content from documentation websites, strips away navigation and ads using Mozilla's Readability engine, and converts content to RAG-ready Markdown chunks. Perfect for building high-quality AI training datasets.",
-  "version": "1.1",
+  "title": "RAG Spider — Web to Markdown for AI",
+  "description": "Enterprise-grade Web-to-RAG data intelligence crawler that ingests HTML, PDF, DOCX, and office files, performs deterministic content classification, semantic chunking, and produces vector DB exports with a dark fintech analytics dashboard.",
+  "version": "2.0.0",
   "meta": {
+    "generatedBy": "apify-agent-skills/apify-actor-development@3.0.0",
     "templateId": "node-crawlee-playwright"
   },
-  "input": "./input_schema.json",
-  "output": "./output_schema.json",
+  "inputSchema": "./input_schema.json",
+  "outputSchema": "./output_schema.json",
   "storages": {
-    "dataset": "./dataset_schema.json"
+    "dataset": "./dataset_schema.json",
+    "keyValueStore": "./key_value_store_schema.json"
   },
   "dockerfile": "../Dockerfile",
   "readme": "../README.md",
   "categories": [
-    "SCRAPER",
     "AI",
+    "SCRAPER",
     "DEVELOPER_TOOLS"
   ],
   "defaultRunOptions": {
     "build": "latest",
-    "timeoutSecs": 300,
+    "timeoutSecs": 600,
     "memoryMbytes": 2048
   }
 }

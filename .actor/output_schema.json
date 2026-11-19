@@ -1,25 +1,25 @@
 {
-    "actorOutputSchemaVersion": 1,
-    "title": "RAG Spider Output",
-    "description": "Clean, RAG-ready Markdown chunks extracted from web pages for AI training datasets",
-    "properties": {
-        "overview": {
-            "type": "string",
-            "title": "📊 Crawled Pages Overview",
-            "description": "Summary of all crawled pages with status, chunk counts, and token estimates",
-            "template": "{{links.apiDefaultDatasetUrl}}/items?view=overview"
-        },
-        "allResults": {
-            "type": "string",
-            "title": "📝 All RAG Chunks",
-            "description": "Complete dataset with all extracted content chunks ready for vector databases",
-            "template": "{{links.apiDefaultDatasetUrl}}/items"
-        },
-        "statistics": {
-            "type": "string",
-            "title": "📈 Processing Statistics",
-            "description": "Detailed runtime statistics and performance metrics",
-            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/PROCESSING_STATISTICS"
-        }
+  "actorOutputSchemaVersion": 1,
+  "title": "Output of RAG Spider",
+  "description": "Clean Markdown chunks, structured dataset, vector database exports, and visual analytics report",
+  "properties": {
+    "dataset": {
+      "type": "string",
+      "title": "RAG Dataset",
+      "description": "Dataset containing all extracted and enriched RAG chunks and document metadata",
+      "template": "{{links.apiDefaultDatasetUrl}}/items"
+    },
+    "keyValueStore": {
+      "type": "string",
+      "title": "Key-Value Store",
+      "description": "Storage holding the visual dashboard report, vector DB export files, and validation audits",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/keys"
+    },
+    "dashboard": {
+      "type": "string",
+      "title": "Visual Report",
+      "description": "Standalone Dark Fintech visual analytics report",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/OUTPUT"
     }
+  }
 }

@@ -1,123 +1,177 @@
 /**
- * RAG Spider - Web to Markdown Crawler for AI Training
+ * RAG Spider — Web to Markdown for AI (Apify Actor)
  * 
- * This is the main entry point for the Apify Actor that crawls documentation
- * websites and converts them to clean, chunked Markdown for RAG systems.
+ * Production-ready Web-to-RAG Data Intelligence Platform:
+ * - Multi-format ingestion (HTML, PDF, DOCX, TXT, MD, CSV, JSON, XML)
+ * - Sitemap intelligence and automatic URL discovery
+ * - Technical documentation structure recognition (Docusaurus, MkDocs, Sphinx, GitBook)
+ * - Deterministic content classification (12 technical taxonomy types)
+ * - 8 configurable semantic chunking strategies
+ * - Contextual chunk enrichment with stable collision-resistant identifiers
+ * - Multi-level deduplication (Page & Chunk perceptual SimHash)
+ * - 100% deterministic content quality scoring (0-100, Grades A+ to F)
+ * - Incremental crawling & content change detection (KVS diff snapshots)
+ * - 13+ production criteria RAG dataset validation
+ * - Vector DB export payloads (Qdrant, Chroma, Pinecone, Weaviate, Milvus, JSONL, CSV)
+ * - Standalone dark fintech HTML analytics dashboard (KVS 'OUTPUT')
+ * - Safe crawling: SSRF protection, robots.txt, and proxy rotation
  */
 
 import { Actor } from 'apify';
 import { PlaywrightCrawler } from 'crawlee';
 import { createConfigManager } from './config/configManager.js';
-
-// Import implemented components
+import { createLogger, LogLevel, MetricCategory } from './utils/logger.js';
 import { createContentExtractor } from './extraction/contentExtractor.js';
 import { createTextChunker } from './processing/textChunker.js';
-import { createMetadataEnricher } from './processing/metadataEnricher.js';
 import { createTokenEstimator } from './processing/tokenEstimator.js';
-import { createLogger, LogLevel, MetricCategory } from './utils/logger.js';
+import { routeAndExtractDocument, SupportedFormats } from './extraction/documentRouter.js';
+import { discoverSitemaps } from './crawler/sitemapDiscovery.js';
+import { analyzeDocumentationStructure } from './crawler/docCrawler.js';
+import { classifyContent } from './processing/contentClassifier.js';
+import { enrichChunksWithContext } from './processing/chunkEnricher.js';
+import { DuplicateDetector } from './processing/duplicateDetector.js';
+import { evaluateContentQuality } from './processing/qualityScorer.js';
+import { CrawlStateManager, CrawlMode } from './storage/crawlStateManager.js';
+import { SnapshotManager } from './storage/snapshotManager.js';
+import { compareContentVersions } from './processing/changeDetector.js';
+import { DatasetValidator } from './processing/datasetValidator.js';
+import { detectLanguage } from './processing/languageDetector.js';
+import { generateAndSaveExports } from './export/vectorExporter.js';
+import { aggregateDashboardData } from './dashboard/dashboardData.js';
+import { generateDashboardHtml } from './dashboard/dashboardGenerator.js';
+import { extractAssets } from './extraction/assetExtractor.js';
+import { extractStructuredData } from './extraction/structuredDataExtractor.js';
+import { isSafeUrl, normalizeCanonicalUrl, extractFileExtension } from './utils/urlUtils.js';
 
-/**
- * Main Actor entry point
- */
-await Actor.main(async () => {
-    // Initialize logger with comprehensive monitoring
-    const logger = createLogger({
-        level: LogLevel.INFO,
-        enableMetrics: true,
-        enableMemoryMonitoring: true,
-        metricsInterval: 30000 // 30 seconds
-    });
+await Actor.init();
 
-    logger.info('RAG Spider starting...', { version: '1.0.0', pid: process.pid });
+const logger = createLogger({
+    level: LogLevel.INFO,
+    enableMetrics: true,
+    enableMemoryMonitoring: true,
+    metricsInterval: 30000
+});
 
-    // Get and validate input configuration
-    const input = await Actor.getInput();
-    logger.info('Raw input received', { inputKeys: Object.keys(input || {}) });
+let crawlStateManager = null;
 
-    // Initialize configuration manager and validate input
+try {
+    logger.info('[RAG Spider] Initializing production actor...', { version: '2.0.0', pid: process.pid });
+
+    // 1. Parse and validate input configuration
+    const rawInput = await Actor.getInput() || {};
+    logger.info('[RAG Spider] Raw input received', { inputKeys: Object.keys(rawInput) });
+
     const configManager = createConfigManager();
     let config;
-
     try {
-        const configTimer = logger.startTimer('config_validation', MetricCategory.PROCESSING);
-        config = configManager.parseAndValidate(input);
-        logger.endTimer(configTimer);
-
-        logger.info('Configuration validation successful', configManager.getSummary());
-        logger.recordSuccess('config_validation', MetricCategory.PROCESSING);
-    } catch (error) {
-        logger.error('Configuration validation failed', {
-            errors: configManager.getErrors(),
-            rawInput: input
-        });
-        logger.recordError('config_validation', MetricCategory.PROCESSING, error);
-
-        // Store error information for debugging
+        config = configManager.parseAndValidate(rawInput);
+        logger.info('[RAG Spider] Configuration validated successfully', configManager.getSummary());
+    } catch (err) {
+        logger.error('[RAG Spider] Input configuration validation failed', { error: err.message });
         await Actor.setValue('INPUT_VALIDATION_ERRORS', {
-            errors: configManager.getErrors(),
+            error: err.message,
+            field: err.field,
             timestamp: new Date().toISOString(),
-            rawInput: input
+            rawInput
         });
-
-        throw error;
+        throw err;
     }
 
-    // Initialize content extraction pipeline
-    logger.info('Initializing content extraction pipeline...');
-    const contentExtractor = createContentExtractor();
-
-    // Initialize text processing services
-    logger.info('Initializing text processing services...', {
-        chunkSize: config.chunkSize,
-        chunkOverlap: config.chunkOverlap
+    // 2. Register graceful abort signal handler
+    crawlStateManager = new CrawlStateManager({
+        crawlMode: config.crawlMode
     });
+    await crawlStateManager.initialize();
+
+    Actor.on('aborting', async () => {
+        logger.warn('[RAG Spider] Abort signal received. Saving state and flushing KVS records...');
+        if (crawlStateManager) {
+            await crawlStateManager.saveState().catch(() => {});
+        }
+    });
+
+    // 3. Initialize core services
+    const snapshotManager = new SnapshotManager({ enabled: config.enableVersionHistory });
+    const duplicateDetector = new DuplicateDetector({
+        enabled: config.enableDeduplication,
+        qualityThreshold: config.qualityThreshold
+    });
+    const datasetValidator = new DatasetValidator({
+        maxChunkTokens: config.maxChunkTokens
+    });
+    const contentExtractor = createContentExtractor();
     const textChunker = createTextChunker({
         chunkSize: config.chunkSize,
-        chunkOverlap: config.chunkOverlap
+        chunkOverlap: config.chunkOverlap,
+        chunkingStrategy: config.chunkingStrategy,
+        maxChunkTokens: config.maxChunkTokens,
+        preserveHeadings: config.preserveHeadings
     });
-    const metadataEnricher = createMetadataEnricher();
     const tokenEstimator = createTokenEstimator();
 
-    logger.info('All components initialized successfully');
+    // 4. Discover Sitemaps if enabled
+    const startUrlsList = config.startUrls.map(u => typeof u === 'object' ? u.url : u);
+    let effectiveCrawlUrls = [...startUrlsList];
 
-    // Create proxy configuration instance
-    const proxyConfiguration = await Actor.createProxyConfiguration(
-        configManager.getConfig().proxyConfiguration
-    );
-    logger.info('Proxy configuration initialized', {
-        proxyEnabled: configManager.getConfig().proxyConfiguration?.useApifyProxy || false
+    if (config.sitemapDiscovery) {
+        logger.info('[RAG Spider] Discovering sitemaps for start URLs...');
+        try {
+            const sitemapEntries = await discoverSitemaps(startUrlsList, {
+                includeUrlGlobs: config.includeUrlGlobs,
+                excludeUrlGlobs: config.excludeUrlGlobs,
+                maxSitemapUrls: config.maxRequestsPerCrawl
+            });
+            if (sitemapEntries.length > 0) {
+                logger.info(`[RAG Spider] Discovered ${sitemapEntries.length} URLs via sitemaps`);
+                const sitemapUrls = sitemapEntries.map(e => e.url);
+                effectiveCrawlUrls = Array.from(new Set([...effectiveCrawlUrls, ...sitemapUrls]));
+            }
+        } catch (sitemapErr) {
+            logger.warn('[RAG Spider] Sitemap discovery warning:', { error: sitemapErr.message });
+        }
+    }
+
+    // 5. Setup Proxy Configuration
+    const proxyConfiguration = await Actor.createProxyConfiguration(config.proxyConfiguration);
+    logger.info('[RAG Spider] Proxy configuration ready', {
+        useApifyProxy: config.proxyConfiguration?.useApifyProxy || false
     });
 
-    // Get crawler configuration
-    const crawlerConfig = configManager.getCrawlerConfig();
-
-    // Initialize processing statistics
-    let processingStats = {
+    // 6. Runtime tracking collections
+    const startTime = Date.now();
+    const crawledRecords = [];
+    const allEnrichedChunks = [];
+    const changeReports = [];
+    const processingStats = {
         totalRequests: 0,
         successfulRequests: 0,
         failedRequests: 0,
+        skippedRequests: 0,
         totalChunks: 0,
         totalTokens: 0,
-        startTime: Date.now()
+        startTime
     };
 
-    // Extract startUrls and custom options from crawler config (PlaywrightCrawler doesn't accept them in constructor)
-    const { startUrls, proxyConfiguration: _, _requestDelay, ...crawlerOptions } = crawlerConfig;
+    // 7. Configure PlaywrightCrawler
+    const crawlerConfig = configManager.getCrawlerConfig();
+    const { startUrls: _su, proxyConfiguration: _pc, _requestDelay, ...crawleeOptions } = crawlerConfig;
 
-    // Set up crawler with complete request handler pipeline
     const crawler = new PlaywrightCrawler({
-        // Use validated configuration (excluding startUrls and proxyConfiguration)
-        ...crawlerOptions,
-        // Add the properly instantiated proxy configuration
+        ...crawleeOptions,
         proxyConfiguration,
+        maxConcurrency: config.maxConcurrency || 5,
+        maxRequestsPerCrawl: config.maxRequestsPerCrawl,
 
-        // Add request preprocessing with delay implementation
         preNavigationHooks: [
             async ({ request }) => {
-                // Implement request delay manually
+                if (!isSafeUrl(request.url)) {
+                    request.skipNavigation = true;
+                    logger.warn('[RAG Spider] Blocked unsafe / private IP URL (SSRF protection):', { url: request.url });
+                    return;
+                }
+
                 if (_requestDelay && _requestDelay > 0 && processingStats.totalRequests > 0) {
-                    logger.info(`Applying request delay: ${_requestDelay}ms`);
-                    await new Promise(resolve => setTimeout(resolve, _requestDelay));
+                    await new Promise(r => setTimeout(r, _requestDelay));
                 }
 
                 request.userData = {
@@ -127,284 +181,362 @@ await Actor.main(async () => {
             }
         ],
 
-        // Complete request handler pipeline
-        requestHandler: async ({ request, page, log }) => {
-            const requestTimer = logger.startTimer('request_processing', MetricCategory.PROCESSING);
-            logger.info('Processing request', { url: request.url });
+        requestHandler: async ({ request, page, enqueueLinks }) => {
+            const requestUrl = request.url;
+            logger.info(`[RAG Spider] Processing: ${requestUrl}`);
 
             try {
-                // Step 1: Extract page content
-                const contentTimer = logger.startTimer('page_content_extraction', MetricCategory.EXTRACTION);
-                const html = await page.content();
-                const title = await page.title();
-                logger.endTimer(contentTimer);
+                let markdown = '';
+                let title = '';
+                let textContent = '';
+                let headings = [];
+                let assets = { images: [], diagrams: [], totalAssets: 0 };
+                let structuredData = {};
+                let docStructure = {};
+                let extractionMethod = 'readability';
+                let format = SupportedFormats.HTML;
 
-                logger.info('Page content extracted', {
-                    title,
-                    htmlLength: html.length,
-                    url: request.url
-                });
+                const fileExt = extractFileExtension(requestUrl);
+                const isNonHtmlDoc = ['pdf', 'docx', 'csv', 'json', 'xml', 'txt', 'md'].includes(fileExt);
 
-                // Step 2: Extract and convert content to Markdown
-                const extractionTimer = logger.startTimer('content_extraction', MetricCategory.EXTRACTION);
-                const extractionResult = await contentExtractor.extract(html, request.url);
-                logger.endTimer(extractionTimer);
+                if (isNonHtmlDoc) {
+                    // Route multi-format documents via buffer fetch
+                    logger.info(`[RAG Spider] Ingesting document file (${fileExt}): ${requestUrl}`);
+                    const docResp = await page.request.get(requestUrl);
+                    const docBuf = await docResp.body();
+                    const mimeType = docResp.headers()['content-type'] || '';
 
-                if (!extractionResult.success || !extractionResult.markdown) {
-                    logger.warn('Content extraction failed', {
-                        url: request.url,
-                        error: extractionResult.error || 'Unknown extraction error'
+                    const docResult = await routeAndExtractDocument(docBuf, {
+                        url: requestUrl,
+                        mimeType,
+                        title: requestUrl.split('/').pop() || 'Document',
+                        maximumDownloadSize: config.maximumDownloadSize
                     });
-                    logger.recordError('content_extraction', MetricCategory.EXTRACTION);
 
-                    await Actor.pushData({
-                        url: request.url,
-                        title,
-                        status: 'extraction_failed',
-                        error: extractionResult.error || 'Unknown extraction error',
-                        timestamp: new Date().toISOString()
-                    });
-                    return;
-                }
-
-                logger.info('Content extraction successful', {
-                    url: request.url,
-                    markdownLength: extractionResult.markdown.length,
-                    method: extractionResult.method
-                });
-                logger.recordSuccess('content_extraction', MetricCategory.EXTRACTION);
-
-                // Step 3: Chunk the content
-                const chunkingTimer = logger.startTimer('text_chunking', MetricCategory.CHUNKING);
-                const chunkingResult = await textChunker.chunk(extractionResult.markdown, {
-                    preserveStructure: true,
-                    metadata: {
-                        url: request.url,
-                        title: title
+                    if (!docResult.success) {
+                        throw new Error(docResult.error || `Failed to extract ${fileExt} document`);
                     }
-                });
-                logger.endTimer(chunkingTimer);
 
-                if (!chunkingResult.success || chunkingResult.chunks.length === 0) {
-                    logger.warn('Text chunking failed', {
-                        url: request.url,
-                        error: chunkingResult.error || 'No chunks generated'
-                    });
-                    logger.recordError('text_chunking', MetricCategory.CHUNKING);
+                    markdown = docResult.markdown;
+                    title = docResult.title || requestUrl;
+                    textContent = docResult.textContent;
+                    headings = docResult.headings || [];
+                    format = docResult.format;
+                    extractionMethod = docResult.extractionMethod;
+                } else {
+                    // Standard HTML & Dynamic JavaScript pages
+                    const html = await page.content();
+                    title = await page.title().catch(() => '');
 
-                    await Actor.pushData({
-                        url: request.url,
-                        title,
-                        status: 'chunking_failed',
-                        error: chunkingResult.error || 'No chunks generated',
-                        timestamp: new Date().toISOString()
-                    });
-                    return;
+                    // Extract asset metadata and structured data
+                    assets = extractAssets(html, requestUrl);
+                    structuredData = extractStructuredData(html, requestUrl);
+
+                    // Documentation structure analysis
+                    docStructure = analyzeDocumentationStructure(null, requestUrl);
+
+                    // Extract content with readability fallback
+                    const extraction = await contentExtractor.extract(html, requestUrl);
+                    if (!extraction.success || !extraction.markdown) {
+                        throw new Error(extraction.error || 'Content extraction yielded empty text');
+                    }
+
+                    markdown = extraction.markdown;
+                    title = extraction.title || title || requestUrl;
+                    textContent = extraction.textContent || '';
+                    headings = extraction.headings || [];
+                    extractionMethod = extraction.method || 'readability';
+
+                    // Enqueue discovered child links if crawl depth permits
+                    if (config.crawlDepth > 1 && enqueueLinks) {
+                        await enqueueLinks({
+                            globs: config.includeUrlGlobs.length > 0 ? config.includeUrlGlobs : undefined,
+                            exclude: config.excludeUrlGlobs.length > 0 ? config.excludeUrlGlobs : undefined,
+                            transformRequestFunction: (req) => {
+                                if (!isSafeUrl(req.url)) return false;
+                                return req;
+                            }
+                        }).catch(e => logger.debug(`[RAG Spider] enqueueLinks notice: ${e.message}`));
+                    }
                 }
 
-                logger.info('Text chunking successful', {
-                    url: request.url,
-                    chunkCount: chunkingResult.chunks.length
-                });
-                logger.recordSuccess('text_chunking', MetricCategory.CHUNKING);
+                // 8. Incremental Crawling State Evaluation
+                if (config.crawlMode === CrawlMode.INCREMENTAL) {
+                    const stateEval = crawlStateManager.evaluateUrlState(requestUrl, markdown, {});
+                    if (!stateEval.shouldProcess) {
+                        logger.info(`[RAG Spider] Skipping unchanged URL (incremental mode): ${requestUrl}`);
+                        processingStats.skippedRequests++;
+                        return;
+                    }
+                }
 
-                // Step 4: Enrich metadata and estimate tokens
-                const processingTimer = logger.startTimer('metadata_processing', MetricCategory.PROCESSING);
-
-                // Prepare source info for metadata enrichment
-                const sourceInfo = {
-                    url: request.url,
-                    title: title,
-                    crawledAt: new Date().toISOString()
-                };
-
-                const processingInfo = {
-                    method: 'langchain-recursive',
-                    extractionMethod: extractionResult.method,
-                    processingTime: Date.now()
-                };
-
-                // Enrich chunks with metadata
-                const enrichmentResult = await metadataEnricher.enrich(
-                    chunkingResult.chunks,
-                    sourceInfo,
-                    processingInfo
+                // 9. Page-level Duplicate Detection
+                const pageDup = duplicateDetector.checkPageDuplicate(
+                    requestUrl,
+                    markdown,
+                    structuredData.canonicalUrl
                 );
 
-                // Calculate token estimates
-                const enrichedChunks = [];
-                let totalTokens = 0;
-
-                for (let i = 0; i < enrichmentResult.enrichedChunks.length; i++) {
-                    const enrichedChunk = enrichmentResult.enrichedChunks[i];
-                    const tokenEstimate = await tokenEstimator.estimateTokens(enrichedChunk.content);
-
-                    const tokenCount = tokenEstimate.tokenCount || 0;
-                    const wordCount = tokenEstimate.wordCount || 0;
-                    totalTokens += tokenCount;
-
-                    enrichedChunks.push({
-                        content: enrichedChunk.content,
-                        metadata: enrichedChunk.metadata,
-                        tokens: tokenCount,
-                        wordCount: wordCount,
-                        chunkIndex: i,
-                        chunkId: enrichedChunk.id || `${request.url}#chunk-${i}`
-                    });
-                }
-                logger.endTimer(processingTimer);
-
-                logger.info('Metadata processing completed', {
-                    url: request.url,
-                    totalTokens,
-                    totalChunks: enrichedChunks.length
+                // 10. Content Classification & Language Detection
+                const classification = classifyContent({
+                    url: requestUrl,
+                    title,
+                    markdown,
+                    headings,
+                    metadata: structuredData
                 });
 
-                // Step 5: Store results in Apify Dataset
-                const result = {
-                    url: request.url,
-                    title: title,
-                    status: 'success',
-                    extractionMethod: extractionResult.method,
-                    totalChunks: enrichedChunks.length,
-                    totalTokens: totalTokens,
-                    totalWords: enrichedChunks.reduce((sum, chunk) => sum + chunk.wordCount, 0),
-                    chunks: enrichedChunks,
-                    processingStats: {
-                        extractionTime: extractionResult.processingTime,
-                        chunkingTime: chunkingResult.processingTime,
-                        totalProcessingTime: Date.now() - request.userData?.startTime || 0
-                    },
-                    timestamp: new Date().toISOString(),
-                    configSummary: configManager.getSummary()
-                };
+                const langResult = detectLanguage(markdown);
 
-                await Actor.pushData(result);
+                // 11. Change Detection and Diff Tracking
+                let changeReport = null;
+                if (config.enableChangeDetection) {
+                    const prevSnapshot = await snapshotManager.getSnapshot(requestUrl);
+                    changeReport = compareContentVersions(prevSnapshot, markdown, requestUrl);
+                    changeReports.push(changeReport);
 
-                // Update statistics
-                processingStats.successfulRequests++;
-                processingStats.totalChunks += enrichedChunks.length;
-                processingStats.totalTokens += totalTokens;
-
-                // Update logger metrics
-                logger.incrementCounter('pages_processed', MetricCategory.PROCESSING);
-                logger.incrementCounter('chunks_generated', MetricCategory.PROCESSING, enrichedChunks.length);
-                logger.incrementCounter('tokens_estimated', MetricCategory.PROCESSING, totalTokens);
-                logger.setGauge('last_processing_time', MetricCategory.PROCESSING, logger.endTimer(requestTimer));
-
-                logger.info('Request processing completed successfully', {
-                    url: request.url,
-                    chunks: enrichedChunks.length,
-                    tokens: totalTokens,
-                    processingTime: `${Date.now() - request.userData?.startTime || 0}ms`
-                });
-                logger.recordSuccess('request_processing', MetricCategory.PROCESSING);
-
-            } catch (error) {
-                logger.error('Request processing failed', {
-                    url: request.url,
-                    error: error.message,
-                    stack: error.stack
-                });
-                logger.recordError('request_processing', MetricCategory.PROCESSING, error);
-                logger.incrementCounter('processing_errors', MetricCategory.PROCESSING);
-
-                // Clean up any running timers
-                if (requestTimer) {
-                    logger.endTimer(requestTimer);
+                    if (config.enableVersionHistory) {
+                        await snapshotManager.saveSnapshot(requestUrl, markdown, { title });
+                    }
                 }
 
-                // Store error information
-                await Actor.pushData({
-                    url: request.url,
-                    title: await page.title().catch(() => 'Unknown'),
-                    status: 'error',
-                    error: error.message,
-                    errorStack: error.stack,
+                // 12. Quality Scoring
+                const quality = evaluateContentQuality({
+                    markdown,
+                    title,
+                    headings,
+                    metadata: structuredData,
+                    chunkCount: 1
+                }, { qualityThreshold: config.qualityThreshold });
+
+                // 13. Semantic Chunking
+                const chunkingResult = await textChunker.chunk(markdown, {
+                    strategy: config.chunkingStrategy,
+                    maxChunkTokens: config.maxChunkTokens,
+                    preserveHeadings: config.preserveHeadings,
+                    sourceUrl: requestUrl
+                });
+
+                const rawChunks = chunkingResult.success && chunkingResult.chunks.length > 0
+                    ? chunkingResult.chunks
+                    : [{ content: markdown, index: 0 }];
+
+                // 14. Contextual Chunk Enrichment
+                const enrichedChunks = enrichChunksWithContext(rawChunks, {
+                    url: requestUrl,
+                    canonicalUrl: structuredData.canonicalUrl || requestUrl,
+                    title,
+                    contentType: classification.contentType,
+                    language: langResult.language,
+                    version: docStructure.version,
+                    section: docStructure.section,
+                    breadcrumbs: docStructure.breadcrumbs,
+                    extractionMethod,
                     timestamp: new Date().toISOString()
                 });
+
+                // Calculate token distribution for chunks
+                let pageTokens = 0;
+                for (const chunk of enrichedChunks) {
+                    const est = await tokenEstimator.estimateTokens(chunk.content);
+                    chunk.tokens = est.tokenCount;
+                    chunk.wordCount = est.wordCount;
+                    chunk.charCount = chunk.content.length;
+                    pageTokens += est.tokenCount;
+
+                    // 15. Chunk-level Duplicate Detection
+                    duplicateDetector.checkChunkDuplicate(chunk.chunkId, chunk.content, requestUrl);
+                    allEnrichedChunks.push(chunk);
+                }
+
+                // 16. Record Crawl State for Incremental Support
+                crawlStateManager.recordPageState(requestUrl, markdown, {});
+
+                // 17. Build Unified Versioned Output Model (Section 6.20)
+                const record = {
+                    schemaVersion: '1.0.0',
+                    documentId: enrichedChunks[0]?.documentId || `doc_${requestUrl}`,
+                    url: requestUrl,
+                    canonicalUrl: structuredData.canonicalUrl || requestUrl,
+                    title,
+                    format,
+                    extractionMethod,
+                    status: 'success',
+                    isDuplicate: pageDup.isDuplicate,
+                    duplicateOf: pageDup.duplicateOf || null,
+                    contentType: classification.contentType,
+                    classificationConfidence: classification.classificationConfidence,
+                    classificationEvidence: classification.classificationEvidence,
+                    qualityScore: quality.qualityScore,
+                    qualityGrade: quality.qualityGrade,
+                    qualitySignals: quality.qualitySignals,
+                    qualityWarnings: quality.qualityWarnings,
+                    language: langResult.language,
+                    languageConfidence: langResult.confidence,
+                    markdown,
+                    totalChunks: enrichedChunks.length,
+                    totalTokens: pageTokens,
+                    totalWords: enrichedChunks.reduce((sum, c) => sum + (c.wordCount || 0), 0),
+                    docStructure: {
+                        isDocumentation: docStructure.isDocumentation || false,
+                        framework: docStructure.framework || 'unknown',
+                        version: docStructure.version || null,
+                        section: docStructure.section || null,
+                        breadcrumbs: docStructure.breadcrumbs || []
+                    },
+                    assets: {
+                        imagesCount: assets.images?.length || 0,
+                        diagramsCount: assets.diagrams?.length || 0,
+                        items: assets.images?.slice(0, 20) || []
+                    },
+                    structuredData: {
+                        openGraph: structuredData.openGraph || {},
+                        jsonLdTypes: structuredData.jsonLd?.map(j => j['@type']).filter(Boolean) || []
+                    },
+                    chunks: enrichedChunks,
+                    extractedAt: new Date().toISOString()
+                };
+
+                // Push page record to default Apify Dataset
+                await Actor.pushData(record);
+                crawledRecords.push(record);
+
+                processingStats.successfulRequests++;
+                processingStats.totalChunks += enrichedChunks.length;
+                processingStats.totalTokens += pageTokens;
+
+                logger.info(`[RAG Spider] Done: ${requestUrl} (${enrichedChunks.length} chunks, ${pageTokens} tokens, Grade ${quality.qualityGrade})`);
+
+            } catch (pageErr) {
+                processingStats.failedRequests++;
+                logger.error(`[RAG Spider] Failed processing ${requestUrl}:`, { error: pageErr.message });
+
+                const failedRecord = {
+                    schemaVersion: '1.0.0',
+                    url: requestUrl,
+                    status: 'error',
+                    error: pageErr.message,
+                    extractedAt: new Date().toISOString()
+                };
+                await Actor.pushData(failedRecord);
+                crawledRecords.push(failedRecord);
             }
         },
 
-        // Enhanced error handling with statistics tracking
-        failedRequestHandler: async ({ request, log }) => {
+        failedRequestHandler: async ({ request }) => {
             processingStats.failedRequests++;
-
-            logger.error('Request failed during crawling', {
-                url: request.url,
-                retryCount: request.retryCount || 0
-            });
-            logger.recordError('request_crawling', MetricCategory.NETWORK);
-            logger.incrementCounter('failed_requests', MetricCategory.NETWORK);
-
-            // Store failure information
+            logger.error(`[RAG Spider] Request failed permanently: ${request.url}`);
             await Actor.pushData({
+                schemaVersion: '1.0.0',
                 url: request.url,
                 status: 'request_failed',
-                error: 'Request failed during crawling',
-                retryCount: request.retryCount || 0,
-                timestamp: new Date().toISOString()
+                error: 'Maximum crawl retries exhausted',
+                extractedAt: new Date().toISOString()
             });
         }
     });
 
-    // Add start URLs to the crawler (now validated)
-    await crawler.addRequests(startUrls);
-    logger.info('Start URLs added to crawler', {
-        count: startUrls.length,
-        urls: startUrls
-    });
-
-    // Start crawling
-    logger.info('Starting crawl operation...');
-    const crawlTimer = logger.startTimer('total_crawl', MetricCategory.PROCESSING);
+    // 18. Add URLs to Crawler Queue and Execute
+    await crawler.addRequests(effectiveCrawlUrls.map(u => ({ url: u })));
+    logger.info(`[RAG Spider] Starting crawl operation with ${effectiveCrawlUrls.length} queued URLs...`);
 
     await crawler.run();
 
-    const totalCrawlTime = logger.endTimer(crawlTimer);
-    logger.info('Crawl operation completed', {
-        totalTime: `${totalCrawlTime}ms`
-    });
+    // 19. Post-Crawl Processing: State, Reports, and Exports
+    const endTime = Date.now();
+    processingStats.endTime = endTime;
+    processingStats.totalDurationMs = endTime - startTime;
 
-    // Calculate final statistics
-    processingStats.endTime = Date.now();
-    processingStats.totalDuration = processingStats.endTime - processingStats.startTime;
-    processingStats.successRate = processingStats.totalRequests > 0
-        ? Math.round((processingStats.successfulRequests / processingStats.totalRequests) * 100)
-        : 0;
+    // Save incremental crawl state
+    await crawlStateManager.saveState();
 
-    // Get comprehensive performance statistics from logger
-    const performanceStats = logger.getPerformanceStats();
+    // Deep RAG dataset validation (Section 6.11)
+    logger.info('[RAG Spider] Running RAG dataset validation...');
+    const validationReport = datasetValidator.validateDataset(crawledRecords);
+    await Actor.setValue('VALIDATION_REPORT', validationReport);
 
-    // Store final processing statistics
-    const finalStats = {
+    // Duplicate detection report (Section 6.7)
+    const duplicateReport = duplicateDetector.getDuplicateReport();
+    await Actor.setValue('DUPLICATE_REPORT', duplicateReport);
+
+    // Change detection summary report (Section 6.10)
+    const changeReportSummary = {
+        totalAnalyzed: changeReports.length,
+        changedPages: changeReports.filter(r => r.hasChanged).length,
+        unchangedPages: changeReports.filter(r => !r.hasChanged).length,
+        reports: changeReports.slice(0, 100),
+        generatedAt: new Date().toISOString()
+    };
+    await Actor.setValue('CHANGE_REPORT', changeReportSummary);
+
+    // Crawl summary and processing statistics
+    const crawlSummary = {
+        schemaVersion: '1.0.0',
+        totalPagesCrawled: crawledRecords.length,
+        successfulPages: processingStats.successfulRequests,
+        failedPages: processingStats.failedRequests,
+        skippedPages: processingStats.skippedRequests,
+        totalChunksExtracted: allEnrichedChunks.length,
+        totalTokensEstimated: processingStats.totalTokens,
+        crawlDurationSecs: Math.round((endTime - startTime) / 1000),
+        validationStatus: validationReport.isValid ? 'PASSED' : 'WARNINGS',
+        criticalIssues: validationReport.criticalCount,
+        completedAt: new Date().toISOString()
+    };
+    await Actor.setValue('CRAWL_SUMMARY', crawlSummary);
+
+    const finalProcessingStats = {
         ...processingStats,
-        performanceMetrics: performanceStats,
+        performanceMetrics: logger.getPerformanceStats(),
         configSummary: configManager.getSummary(),
         timestamp: new Date().toISOString()
     };
+    await Actor.setValue('PROCESSING_STATISTICS', finalProcessingStats);
 
-    await Actor.setValue('PROCESSING_STATISTICS', finalStats);
-
-    // Log comprehensive final statistics
-    logger.info('Final processing statistics', {
-        totalRequests: processingStats.totalRequests,
-        successfulRequests: processingStats.successfulRequests,
-        failedRequests: processingStats.failedRequests,
-        successRate: `${processingStats.successRate}%`,
-        totalDuration: `${Math.round(processingStats.totalDuration / 1000)}s`,
-        totalChunks: processingStats.totalChunks,
-        totalTokens: processingStats.totalTokens
+    // 20. Multi-Format Vector DB Exports (Section 6.17)
+    logger.info('[RAG Spider] Generating vector database export files...');
+    const exportSummary = await generateAndSaveExports(allEnrichedChunks, {
+        format: config.exportFormat,
+        generateAllExports: true
     });
 
-    // Log performance summary
-    logger.logPerformanceSummary();
+    // 21. Standalone Visual Analytics Dashboard (Section 6.18)
+    if (config.generateDashboard) {
+        logger.info('[RAG Spider] Rendering standalone Dark Fintech visual report for KVS "OUTPUT"...');
+        try {
+            const dashboardData = aggregateDashboardData({
+                crawledPages: crawledRecords,
+                allChunks: allEnrichedChunks,
+                processingStats: finalProcessingStats,
+                validationReport,
+                duplicateReport,
+                crawlMode: config.crawlMode,
+                exportSummary,
+                startTime,
+                endTime
+            });
+            const dashboardHtml = generateDashboardHtml(dashboardData);
+            await Actor.setValue('OUTPUT', dashboardHtml, { contentType: 'text/html' });
+            logger.info('[RAG Spider] Visual dashboard successfully saved to Key-Value Store key "OUTPUT"');
+        } catch (dashErr) {
+            logger.warn('[RAG Spider] Visual dashboard generation warning:', { error: dashErr.message });
+        }
+    }
 
-    logger.info('RAG Spider completed successfully', {
-        uptime: performanceStats.uptimeFormatted,
-        memoryUsage: performanceStats.memory.current
+    logger.info('[RAG Spider] Execution completed successfully', {
+        pages: crawledRecords.length,
+        chunks: allEnrichedChunks.length,
+        tokens: processingStats.totalTokens,
+        durationSecs: Math.round((endTime - startTime) / 1000)
     });
 
-    // Cleanup logger resources
+} catch (error) {
+    logger.error('[RAG Spider] Fatal error during crawl execution:', {
+        message: error.message,
+        stack: error.stack
+    });
+    throw error;
+} finally {
     logger.cleanup();
-});
+    await Actor.exit();
+}

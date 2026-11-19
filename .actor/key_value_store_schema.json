@@ -1,0 +1,82 @@
+{
+  "actorKeyValueStoreSchemaVersion": 1,
+  "title": "RAG Spider Artifacts & Reports",
+  "description": "Visual dashboards, verification reports, vector exports, and crawl state records",
+  "collections": {
+    "dashboard": {
+      "title": "Visual Analytics Dashboard",
+      "description": "Standalone Dark Fintech visual report in HTML format",
+      "key": "OUTPUT",
+      "contentTypes": [
+        "text/html"
+      ]
+    },
+    "processingStatistics": {
+      "title": "Processing Statistics",
+      "description": "Complete run runtime performance metrics and memory usage",
+      "key": "PROCESSING_STATISTICS",
+      "contentTypes": [
+        "application/json"
+      ]
+    },
+    "crawlSummary": {
+      "title": "Crawl Summary",
+      "description": "High-level summary of processed pages, chunks, and tokens",
+      "key": "CRAWL_SUMMARY",
+      "contentTypes": [
+        "application/json"
+      ]
+    },
+    "validationReport": {
+      "title": "RAG Dataset Validation Report",
+      "description": "13-criteria automated data integrity and health evaluation",
+      "key": "VALIDATION_REPORT",
+      "contentTypes": [
+        "application/json"
+      ]
+    },
+    "duplicateReport": {
+      "title": "Duplicate Content Report",
+      "description": "Detailed exact and SimHash near-duplicate statistics",
+      "key": "DUPLICATE_REPORT",
+      "contentTypes": [
+        "application/json"
+      ]
+    },
+    "changeReport": {
+      "title": "Content Change Report",
+      "description": "Line-by-line diffs and modified section summaries against previous crawl snapshots",
+      "key": "CHANGE_REPORT",
+      "contentTypes": [
+        "application/json"
+      ]
+    },
+    "exportSummary": {
+      "title": "Vector DB Export Manifest",
+      "description": "Manifest of generated vector database export files",
+      "key": "EXPORT_SUMMARY",
+      "contentTypes": [
+        "application/json"
+      ]
+    },
+    "crawlState": {
+      "title": "Incremental Crawl State",
+      "description": "Scoped cache of URL fingerprints and ETags for incremental recrawling",
+      "key": "CRAWL_STATE",
+      "contentTypes": [
+        "application/json"
+      ]
+    },
+    "vectorExports": {
+      "title": "Vector Database Payloads",
+      "description": "Ready-to-ingest vector database payloads (Qdrant, Chroma, Pinecone, Weaviate, Milvus, JSONL, CSV)",
+      "keyPrefix": "EXPORT_",
+      "contentTypes": [
+        "application/json",
+        "application/x-ndjson",
+        "text/csv"
+      ]
+    }
+  }
+}
+

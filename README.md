@@ -1,282 +1,355 @@
-# 🕷️ RAG Spider - Transform Any Website Into AI-Ready Training Data
+# RAG Spider — Web to Markdown for AI
 
-[![Apify](https://img.shields.io/badge/Built%20on-Apify-brightgreen)](https://apify.com) 
-[![Run on Apify](https://img.shields.io/badge/Run%20on-Apify-orange)](https://console.apify.com/actors/rag-spider)
-[![Node.js](https://img.shields.io/badge/Node.js-20+-green)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Apify Actor](https://img.shields.io/badge/Apify-Actor-brightgreen?logo=apify)](https://apify.com/store)
+[![Specification](https://img.shields.io/badge/Actor%20Spec-v1-blue)](https://docs.apify.com/actors/development)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green?logo=node.js)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
+[![Crawlee](https://img.shields.io/badge/Powered%20by-Crawlee-orange)](https://crawlee.dev)
 
-**Turn messy documentation websites into clean, chunked Markdown ready for Vector Databases and RAG systems in minutes, not hours.**
-
----
-
-## 🎯 Why RAG Spider Beats Manual Content Preparation
-
-**The Problem:** Building high-quality RAG systems requires clean, structured content. But web scraping gives you messy HTML full of navigation menus, ads, footers, and irrelevant content that pollutes your AI training data.
-
-**The Solution:** RAG Spider uses Mozilla's battle-tested Readability engine (the same technology powering Firefox Reader View) to automatically extract only the meaningful content, then converts it to perfectly formatted Markdown chunks ready for your vector database.
-
-### ⚡ **3x Faster** than manual content cleaning
-### 🎯 **95% Cleaner** content than traditional scrapers  
-### 💰 **100% Free** - no API keys or external dependencies required
+**Enterprise-grade Web-to-RAG Data Intelligence Platform that crawls documentation websites, ingests multi-format documents (HTML, PDF, DOCX, CSV, JSON, XML), extracts clean content using Mozilla's Readability engine, performs deterministic content classification, semantic chunking, and produces instant Vector DB payloads with a Dark Fintech analytics dashboard.**
 
 ---
 
-## ✨ Key Features
+## What does RAG Spider do?
 
-🧹 **Smart Noise Removal** - Automatically strips navigation, ads, footers, and sidebars using Firefox's Readability engine
+**RAG Spider** bridges the gap between raw web documentation and production Retrieval-Augmented Generation (RAG) pipelines. It extracts clean, structured, and chunked Markdown from technical documentation websites, knowledge bases, and document files without requiring external LLM API keys.
 
-📝 **Perfect Markdown Output** - Preserves code blocks, tables, headings, and links in GitHub Flavored Markdown format
-
-🔧 **Auto-Chunking** - Outputs data ready for vector databases (Pinecone, ChromaDB, Weaviate) with configurable chunk sizes and overlap
-
-⚡ **High Performance** - Built on Crawlee and Playwright for reliable, fast crawling at scale
-
-🎯 **Focused Crawling** - URL glob patterns keep crawling focused on relevant documentation sections
-
-🔒 **Privacy-First** - Completely local processing with no external API dependencies
+It strips away clutter (navigation bars, ads, cookie banners, tracking widgets) using Mozilla's battle-tested Readability algorithm, evaluates content quality (0–100 score with A+ through F grades), classifies content into a deterministic 12-type technical taxonomy, enriches each chunk with ancestral context and stable IDs, and exports ready-to-ingest payloads for **Qdrant, Chroma, Pinecone, Weaviate, Milvus, JSONL, and CSV**.
 
 ---
 
-## 🔧 How It Works
+## Why use RAG Spider?
 
-1. **🕷️ Smart Crawling** - Starts from your URLs and intelligently discovers relevant pages using glob patterns
-2. **🧹 Content Cleaning** - Mozilla's Readability engine removes navigation, ads, and noise (same tech as Firefox Reader View)
-3. **📝 Markdown Conversion** - Converts clean HTML to GitHub Flavored Markdown, preserving code blocks and tables
-4. **✂️ Intelligent Chunking** - Splits content into optimal sizes with configurable overlap for RAG systems
-5. **📊 Token Estimation** - Calculates token counts for cost planning (no API calls required)
-6. **💾 Ready Output** - Delivers structured JSON perfect for vector database ingestion
+### The Problem
+Building production RAG pipelines on raw web scrapes causes retrieval pollution:
+- **Noise & Boilerplate**: Scrapers capture menus, copyright footers, sidebars, and ads that waste embedding vectors and confuse semantic search.
+- **Fragmented Context**: Arbitrary character splitting severs code blocks, breaks tables, and detaches paragraphs from their section headings.
+- **Data Inconsistency**: Web documentation mixes tutorials, API references, changelogs, and release notes without categorization.
+- **Costly Recrawls**: Crawlers re-download unchanged documentation on every run, wasting compute and proxy bandwidth.
+
+### The Solution: RAG Spider
+- **Mozilla Readability & AST Cleaning**: Extracts only the article core while preserving code syntax fences, LaTeX math, and Markdown tables.
+- **8 Semantic Chunking Strategies**: Configurable recursive character, paragraph, sentence, heading-aware, code-block-aware, table-aware, and doc-section splitting.
+- **Contextual Chunk Enrichment**: Every chunk carries document title, source URL, heading hierarchy, section title, breadcrumbs, language, and stable sequential chunk IDs (`doc_abc#chunk-0`).
+- **Multi-Level Deduplication**: Identifies exact page duplicates via SHA-256 and detects near-duplicate chunks via perceptual 64-bit SimHash.
+- **Incremental Crawling**: Utilizes ETags, Last-Modified headers, and Key-Value Store snapshots to skip unchanged pages and compute line diffs.
+- **Zero Mandatory External AI**: All intelligence—classification, quality scoring, language detection, and chunking—runs locally and deterministically.
+- **Standalone Dark Fintech Dashboard**: Comprehensive visual analytics report stored in the Key-Value Store under the `OUTPUT` key (`#090A07` dark theme, neon-lime accents, Lucide SVG line icons, zero emojis).
 
 ---
 
-## 📋 Input Parameters
+## Core Capabilities & Architecture
 
-| Parameter | Type | Description | Default | Required |
-|-----------|------|-------------|---------|----------|
-| `startUrls` | Array | Entry points for crawling (supports Apify format) | - | ✅ |
-| `crawlDepth` | Integer | Maximum crawl depth (1-10) | 2 | ❌ |
-| `includeUrlGlobs` | Array | URL patterns to include (e.g., `https://docs.example.com/**`) | `[]` | ❌ |
-| `chunkSize` | Integer | Maximum characters per chunk (100-8000) | 1000 | ❌ |
-| `chunkOverlap` | Integer | Overlap between chunks in characters (0-500) | 100 | ❌ |
-| `maxRequestsPerCrawl` | Integer | Maximum pages to process (1-10000) | 1000 | ❌ |
-| `requestDelay` | Integer | Delay between requests in milliseconds | 1000 | ❌ |
-| `proxyConfiguration` | Object | Proxy settings for rate limiting avoidance | Apify Proxy | ❌ |
-
-### 📝 Example Input Configuration
-
-```json
-{
-  "startUrls": [
-    { "url": "https://docs.python.org/3/" },
-    { "url": "https://fastapi.tiangolo.com/" }
-  ],
-  "crawlDepth": 3,
-  "includeUrlGlobs": [
-    "https://docs.python.org/3/**",
-    "https://fastapi.tiangolo.com/**"
-  ],
-  "chunkSize": 1500,
-  "chunkOverlap": 200,
-  "maxRequestsPerCrawl": 500
-}
+```
+[Start URLs / Sitemaps]
+         │
+         ▼
+[Sitemap Discovery & Robots.txt]
+         │
+         ▼
+[Crawl Policy & SSRF Guard] ──► [Playwright / Crawlee]
+                                          │
+    ┌─────────────────────────────────────┴─────────────────────────────────────┐
+    ▼                                                                           ▼
+[HTML Web Pages]                                                     [Multi-Format Documents]
+(Readability, AST, Metadata)                                          (PDF, DOCX, CSV, JSON, XML)
+    │                                                                           │
+    └─────────────────────────────────────┬─────────────────────────────────────┘
+                                          ▼
+                         [Deterministic Classification]
+                         [Language Detection (50+ langs)]
+                         [Deterministic Quality Scoring (0-100)]
+                         [Line-by-Line Content Diffing]
+                                          │
+                                          ▼
+                         [8-Strategy Semantic Chunking]
+                         [Contextual Metadata Enrichment]
+                         [Page & Chunk Deduplication (SimHash)]
+                                          │
+                                          ▼
+                      ┌───────────────────┴───────────────────┐
+                      ▼                                       ▼
+            [Apify Default Dataset]                 [Apify Key-Value Store]
+            - Versioned RAG records                 - OUTPUT (Dark Fintech HTML)
+            - Enriched chunks array                 - EXPORT_QDRANT, EXPORT_CHROMA
+            - Token statistics                      - EXPORT_PINECONE, EXPORT_WEAVIATE
+            - Quality grades & signals              - EXPORT_MILVUS, EXPORT_JSONL, CSV
+                                                    - VALIDATION_REPORT, CRAWL_STATE
 ```
 
 ---
 
-## 📤 Sample Output
+## What data does RAG Spider extract?
 
-Each processed page produces clean, structured JSON optimized for vector database ingestion:
+Each processed page produces a structured record in the default Apify Dataset adhering to `schemaVersion: "1.0.0"`:
+
+| Field Name | Type | Description | Example |
+|------------|------|-------------|---------|
+| `documentId` | `string` | Deterministic, collision-resistant document ID | `doc_4f9a2b1c` |
+| `url` | `string` | Normalized source URL of the page or document | `https://docs.example.com/api` |
+| `canonicalUrl` | `string` | Canonical URL resolved from HTML `<link>` or headers | `https://docs.example.com/api` |
+| `title` | `string` | Extracted title of the document or page | `API Reference Documentation` |
+| `format` | `string` | Ingested format (`html`, `pdf`, `docx`, `csv`, `json`, `xml`) | `html` |
+| `contentType` | `string` | Deterministic taxonomy classification | `api_reference` |
+| `classificationConfidence` | `number` | Confidence score of classification (0.0 to 1.0) | `0.92` |
+| `qualityScore` | `integer` | Deterministic content quality score (0 to 100) | `88` |
+| `qualityGrade` | `string` | Quality letter grade (`A+`, `A`, `B`, `C`, `D`, `F`) | `A` |
+| `language` | `string` | Detected ISO 639-1 language code | `en` |
+| `markdown` | `string` | Cleaned full Markdown content with preserved code & tables | `# Overview\n\nContent...` |
+| `totalChunks` | `integer` | Total number of semantic chunks produced | `6` |
+| `totalTokens` | `integer` | Total estimated tokens across all chunks | `2140` |
+| `totalWords` | `integer` | Total word count across all chunks | `1450` |
+| `docStructure` | `object` | Detected framework, version, section, and breadcrumbs | `{ "framework": "docusaurus", ... }` |
+| `assets` | `object` | Metadata of extracted images, diagrams, and figures | `{ "imagesCount": 3, ... }` |
+| `structuredData` | `object` | Extracted OpenGraph, Twitter Cards, and JSON-LD types | `{ "jsonLdTypes": ["TechArticle"] }` |
+| `chunks` | `array` | Enriched chunk objects with tokens, sequential IDs, and parent info | `[{ "chunkId": "...", "content": "..." }]` |
+| `extractedAt` | `string` | ISO 8601 timestamp of extraction | `2026-11-19T14:30:00.000Z` |
+
+---
+
+## How to crawl documentation and build a RAG knowledge base
+
+1. **Create a Run**: Click **Try Actor** or open RAG Spider in the Apify Console.
+2. **Enter Start URLs**: Provide documentation base URLs (e.g., `https://docs.docker.com/`).
+3. **Configure Chunking Strategy**: Choose from 8 semantic chunking strategies (e.g., `heading_markdown` or `recursive`).
+4. **Select Output Formats**: Choose your vector database format (`qdrant`, `chroma`, `pinecone`, `weaviate`, `milvus`, or `jsonl`).
+5. **Run the Actor**: RAG Spider navigates, parses, cleans, scores, and chunks pages in parallel.
+6. **Download Results & Visual Report**:
+   - Access clean JSON/CSV records in the **Storage -> Dataset** tab.
+   - Download vector database payloads from the **Storage -> Key-Value Store** tab.
+   - Open the **OUTPUT** key in the Key-Value Store to view the interactive dark fintech dashboard.
+
+---
+
+## Runtime & Pricing Estimates
+
+RAG Spider is engineered for high performance using Crawlee and headless browser pooling:
+
+| Target Volume | Crawl Depth | Estimated Duration | Memory | Estimated Compute Units |
+|---------------|-------------|--------------------|--------|-------------------------|
+| 5–10 pages | Depth 1–2 | 15–30 seconds | 2048 MB | ~0.01 – 0.02 CU |
+| 50–100 pages | Depth 2–3 | 2–4 minutes | 2048 MB | ~0.08 – 0.15 CU |
+| 500+ pages | Depth 3+ | 10–20 minutes | 4096 MB | ~0.50 – 1.00 CU |
+
+*Note: Runtime depends on target site responsiveness and configured request delay. Using `crawlMode: "incremental"` on repeat runs skips unchanged pages, cutting runtime and compute cost significantly.*
+
+---
+
+## Input Parameters
+
+### 1. Crawling Configuration
+- `startUrls` (*array*, required): Starting URLs. Supports standard strings or Apify request list format.
+- `crawlDepth` (*integer*, default: `1`): Maximum crawl distance from starting URLs (1 to 10).
+- `includeUrlGlobs` (*array*, default: `[]`): Glob patterns to limit crawl boundaries (e.g., `["https://docs.example.com/**"]`).
+- `excludeUrlGlobs` (*array*, default: `[]`): Glob patterns for URLs to exclude (e.g., `["**/changelog/**", "**/tag/**"]`).
+- `sitemapDiscovery` (*boolean*, default: `true`): Auto-discover URLs from `robots.txt` and `sitemap.xml`.
+- `respectRobotsTxt` (*boolean*, default: `true`): Enforce target site crawl rules and delays.
+- `maxRequestsPerCrawl` (*integer*, default: `5`): Maximum pages to process.
+- `requestDelay` (*integer*, default: `500`): Politeness delay between requests in milliseconds.
+- `maxConcurrency` (*integer*, default: `5`): Maximum parallel browser tabs.
+- `proxyConfiguration` (*object*, default: `{ useApifyProxy: true }`): Proxy settings to prevent IP bans.
+
+### 2. Extraction & Ingestion
+- `enabledFormats` (*array*, default: `["html", "pdf", "docx", "txt", "md", "csv", "json", "xml"]`): Active file formats.
+- `enableReadability` (*boolean*, default: `true`): Strip boilerplate navigation and headers.
+- `enableImageMetadata` (*boolean*, default: `true`): Extract figure and diagram metadata.
+- `enableStructuredData` (*boolean*, default: `true`): Extract JSON-LD and OpenGraph tags.
+- `preserveCodeBlocks` (*boolean*, default: `true`): Protect code syntax and language annotations.
+- `preserveTables` (*boolean*, default: `true`): Convert HTML tables to Markdown tables.
+
+### 3. Semantic Chunking
+- `chunkingStrategy` (*select*, default: `"recursive"`): Chunking algorithm (`recursive`, `fixed`, `paragraph`, `sentence`, `heading_markdown`, `code_block_aware`, `table_aware`, `doc_section`).
+- `chunkSize` (*integer*, default: `1000`): Maximum chunk size in characters.
+- `chunkOverlap` (*integer*, default: `100`): Character overlap between consecutive chunks.
+- `maxChunkTokens` (*integer*, default: `1000`): Maximum token limit per chunk.
+- `preserveHeadings` (*boolean*, default: `true`): Embed ancestral heading paths into each chunk.
+
+### 4. Quality & Incremental Options
+- `enableQualityScoring` (*boolean*, default: `true`): Deterministic 0-100 scoring.
+- `qualityThreshold` (*integer*, default: `50`): Minimum acceptable quality score.
+- `enableDeduplication` (*boolean*, default: `true`): Page and chunk SimHash deduplication.
+- `crawlMode` (*select*, default: `"full"`): Crawl mode (`full`, `incremental`, `refresh_urls`, `refresh_domain`).
+- `exportFormat` (*select*, default: `"jsonl"`): Target vector DB export format.
+- `generateDashboard` (*boolean*, default: `true`): Generate standalone HTML analytics report.
+
+---
+
+## Output Examples
+
+### Sample Dataset Item (JSON)
 
 ```json
 {
-  "url": "https://docs.python.org/3/tutorial/introduction.html",
-  "title": "An Informal Introduction to Python",
-  "status": "success",
+  "schemaVersion": "1.0.0",
+  "documentId": "doc_b8f41e0a",
+  "url": "https://docs.example.com/api/v2/authentication",
+  "canonicalUrl": "https://docs.example.com/api/v2/authentication",
+  "title": "API Authentication Guide",
+  "format": "html",
   "extractionMethod": "readability",
-  "totalChunks": 8,
-  "totalTokens": 2847,
-  "totalWords": 1923,
+  "status": "success",
+  "isDuplicate": false,
+  "contentType": "api_reference",
+  "classificationConfidence": 0.94,
+  "qualityScore": 89,
+  "qualityGrade": "A",
+  "language": "en",
+  "totalChunks": 2,
+  "totalTokens": 620,
+  "totalWords": 415,
+  "docStructure": {
+    "isDocumentation": true,
+    "framework": "docusaurus",
+    "version": "v2",
+    "section": "Authentication",
+    "breadcrumbs": ["Docs", "API", "Authentication"]
+  },
   "chunks": [
     {
-      "content": "# An Informal Introduction to Python\n\nIn the following examples, input and output are distinguished by the presence or absence of prompts (>>> and ...): to repeat the example, you must type everything after the prompt, when the prompt appears...",
-      "metadata": {
-        "source": {
-          "url": "https://docs.python.org/3/tutorial/introduction.html",
-          "title": "An Informal Introduction to Python",
-          "domain": "docs.python.org",
-          "crawledAt": "2024-12-12T10:30:00.000Z"
-        },
-        "processing": {
-          "chunkIndex": 0,
-          "totalChunks": 8,
-          "chunkSize": 1456,
-          "extractionMethod": "readability"
-        },
-        "content": {
-          "wordCount": 312,
-          "contentType": "technical-documentation"
-        }
-      },
-      "tokens": 387,
-      "wordCount": 312,
+      "chunkId": "chunk_b8f41e0a_0_a4c7e2b1",
+      "documentId": "doc_b8f41e0a",
+      "content": "# API Authentication Guide\n\nAll requests to the API must include an `Authorization: Bearer <token>` header.",
       "chunkIndex": 0,
-      "chunkId": "chunk_abc123_0_def456"
+      "totalChunks": 2,
+      "tokens": 280,
+      "wordCount": 185,
+      "charCount": 1240,
+      "previousChunkId": null,
+      "nextChunkId": "chunk_b8f41e0a_1_f8e2d4c0",
+      "metadata": {
+        "sourceUrl": "https://docs.example.com/api/v2/authentication",
+        "documentTitle": "API Authentication Guide",
+        "sectionTitle": "API Authentication Guide",
+        "contentType": "api_reference",
+        "language": "en"
+      }
     }
   ],
-  "processingStats": {
-    "extractionTime": 245,
-    "chunkingTime": 89,
-    "totalProcessingTime": 1247
-  },
-  "timestamp": "2024-12-12T10:30:00.000Z"
+  "extractedAt": "2026-11-19T14:30:00.000Z"
 }
 ```
 
 ---
 
-## 💰 Cost Estimation
+## Vector Database & Framework Integrations
 
-**RAG Spider is completely FREE to use!** 
+### Python / Apify Client
 
-- ✅ **No API costs** - All processing happens locally
-- ✅ **No token limits** - Process unlimited content  
-- ✅ **No external dependencies** - Works entirely within Apify infrastructure
+```python
+from apify_client import ApifyClient
 
-**Typical Usage Costs (Apify platform only):**
-- 📄 **100 pages**: ~$0.10 (based on Apify compute units)
-- 📚 **1,000 pages**: ~$0.80 
-- 🏢 **10,000 pages**: ~$6.50
+client = ApifyClient("YOUR_APIFY_TOKEN")
 
-*Costs are for Apify platform usage only. The RAG Spider actor itself is free and open-source.*
-
----
-
-## 🎯 Perfect For
-
-### 🤖 **AI Engineers**
-Building RAG systems, chatbots, and knowledge bases that need clean, structured training data
-
-### 📝 **Technical Writers** 
-Creating searchable documentation datasets and content analysis pipelines
-
-### 💬 **Chatbot Builders**
-Using Flowise, LangFlow, or custom solutions that require high-quality content chunks
-
-### 🔬 **Data Scientists**
-Preparing clean training datasets from web sources for machine learning models
-
----
-
-## 🚀 Quick Start Examples
-
-### Building a Documentation Chatbot
-
-```json
-{
-  "startUrls": [{ "url": "https://docs.your-product.com" }],
-  "includeUrlGlobs": ["https://docs.your-product.com/**"],
-  "chunkSize": 1000,
-  "chunkOverlap": 100
+run_input = {
+    "startUrls": [{"url": "https://docs.python.org/3/tutorial/"}],
+    "chunkingStrategy": "heading_markdown",
+    "chunkSize": 1000,
+    "maxRequestsPerCrawl": 20,
+    "exportFormat": "qdrant"
 }
+
+run = client.actor("YOUR_USERNAME/rag-spider").call(run_input=run_input)
+
+# Fetch structured records
+dataset_items = client.dataset(run["defaultDatasetId"]).list_items().items
+print(f"Extracted {len(dataset_items)} documents")
+
+# Fetch Qdrant-formatted points payload directly from Key-Value Store
+qdrant_payload = client.key_value_store(run["defaultKeyValueStoreId"]).get_record("EXPORT_QDRANT")["value"]
 ```
 
-### Creating Training Datasets
+### LangChain Integration
 
-```json
-{
-  "startUrls": [
-    { "url": "https://pytorch.org/docs/" },
-    { "url": "https://tensorflow.org/guide/" }
-  ],
-  "crawlDepth": 4,
-  "chunkSize": 1500,
-  "maxRequestsPerCrawl": 2000
-}
+```python
+from langchain_community.document_loaders import ApifyDatasetLoader
+from langchain_core.documents import Document
+
+loader = ApifyDatasetLoader(
+    dataset_id="YOUR_DATASET_ID",
+    dataset_mapping_function=lambda item: [
+        Document(
+            page_content=chunk["content"],
+            metadata={
+                "chunk_id": chunk["chunkId"],
+                "source": item["url"],
+                "title": item["title"],
+                "content_type": item["contentType"],
+                "quality_grade": item["qualityGrade"]
+            }
+        )
+        for chunk in item.get("chunks", [])
+    ]
+)
+
+documents = loader.load()
 ```
 
-### Multi-Site Knowledge Base
+### LlamaIndex Integration
 
-```json
-{
-  "startUrls": [
-    { "url": "https://docs.python.org/" },
-    { "url": "https://docs.djangoproject.com/" },
-    { "url": "https://flask.palletsprojects.com/" }
-  ],
-  "includeUrlGlobs": [
-    "https://docs.python.org/**",
-    "https://docs.djangoproject.com/**", 
-    "https://flask.palletsprojects.com/**"
-  ]
-}
+```python
+from llama_index.core.schema import TextNode
+from apify_client import ApifyClient
+
+client = ApifyClient("YOUR_APIFY_TOKEN")
+items = client.dataset("YOUR_DATASET_ID").list_items().items
+
+nodes = []
+for item in items:
+    for chunk in item.get("chunks", []):
+        node = TextNode(
+            text=chunk["content"],
+            id_=chunk["chunkId"],
+            metadata={
+                "url": item["url"],
+                "title": item["title"],
+                "quality_score": item["qualityScore"]
+            }
+        )
+        nodes.append(node)
 ```
 
----
-
-## 🛠️ Technical Stack
-
-- **Runtime**: Node.js 20+ with ES Modules
-- **Crawling**: Crawlee + Playwright for reliable web automation
-- **Content Cleaning**: Mozilla Readability (Firefox Reader View engine)
-- **Markdown Conversion**: Turndown with GitHub Flavored Markdown support
-- **Text Chunking**: LangChain RecursiveCharacterTextSplitter
-- **Token Estimation**: Local gpt-tokenizer (no API calls)
-- **Platform**: Apify Cloud with auto-scaling and monitoring
+### Make & Zapier Automations
+1. Add an **Apify** trigger: **Watch Actor Runs** (select `RAG Spider`).
+2. Add a **Filter**: `status EQUALS SUCCEEDED`.
+3. Add a destination action: **Qdrant**, **Pinecone**, or **Webhook** to ingest chunks directly into your production vector index.
 
 ---
 
-## 📊 Quality Guarantees
+## Key-Value Store Artifacts
 
-✅ **Content Quality**: 95%+ noise removal rate using Mozilla's proven Readability engine
+In addition to dataset records, RAG Spider writes specialized operational artifacts to the default Key-Value Store:
 
-✅ **Format Preservation**: Code blocks, tables, and document structure maintained perfectly
-
-✅ **Chunk Optimization**: Intelligent splitting preserves context across boundaries
-
-✅ **Reliability**: Built on enterprise-grade Crawlee framework with automatic retries
-
-✅ **Scalability**: Handles everything from small docs sites to massive knowledge bases
-
----
-
-## 🆚 RAG Spider vs Alternatives
-
-| Feature | RAG Spider | Traditional Scrapers | Manual Processing |
-|---------|------------|---------------------|-------------------|
-| **Content Quality** | 🟢 95%+ clean | 🔴 30-50% clean | 🟢 100% clean |
-| **Processing Speed** | 🟢 1000+ pages/hour | 🟡 500+ pages/hour | 🔴 10-20 pages/hour |
-| **Setup Time** | 🟢 2 minutes | 🟡 1-2 hours | 🔴 Days/weeks |
-| **Maintenance** | 🟢 Zero | 🔴 High | 🔴 Very high |
-| **Cost** | 🟢 Free + compute | 🟡 API costs | 🔴 Human time |
-| **Chunk Optimization** | 🟢 Automatic | 🔴 Manual | 🟡 Manual |
+- `OUTPUT`: Standalone Dark Fintech visual analytics dashboard (viewable in browser).
+- `PROCESSING_STATISTICS`: Runtime performance metrics, requests per second, and memory usage.
+- `CRAWL_SUMMARY`: High-level summary of total pages, chunks, and token counts.
+- `VALIDATION_REPORT`: Automated 13-criteria data integrity audit with severity ratings.
+- `DUPLICATE_REPORT`: Page-level and chunk-level deduplication statistics.
+- `CHANGE_REPORT`: Content change summaries and line diffs.
+- `EXPORT_SUMMARY`: Manifest of generated vector database payloads.
+- `EXPORT_JSONL`: Standard newline-delimited JSON of all chunks.
+- `EXPORT_QDRANT`: Qdrant points batch payload with UUID formatting.
+- `EXPORT_CHROMA`: Chroma collection dictionaries (`ids`, `documents`, `metadatas`).
+- `EXPORT_PINECONE`: Pinecone vector upsert records.
+- `EXPORT_WEAVIATE`: Weaviate `DocumentChunk` object representations.
+- `EXPORT_MILVUS`: Milvus entity collection records.
+- `EXPORT_CSV`: Tabular CSV export of all chunks.
+- `CRAWL_STATE`: State hashes for incremental recrawling.
 
 ---
 
-## 🎉 Success Stories
+## FAQ & Troubleshooting
 
-> *"RAG Spider saved us 40+ hours of manual content preparation. Our documentation chatbot now has 10x cleaner training data and gives much better answers."* - **AI Startup Founder**
+### Why is a page skipped or reporting low quality?
+Pages with fewer than 100 characters of meaningful content or pages dominated by login forms receive low quality scores (`Grade D` or `Grade F`). Check `qualityWarnings` in the dataset item to see specific detected signals.
 
-> *"We processed 50,000 documentation pages in 2 hours. The content quality is incredible - no more navigation menus polluting our embeddings."* - **ML Engineer at Fortune 500**
+### How do I crawl single-page JavaScript apps (SPAs)?
+RAG Spider is powered by Playwright and automatically waits for network requests and DOM rendering before capturing page content. Adjust `requestDelay` if the target application takes several seconds to load content dynamically.
 
-> *"Finally, a scraper that understands the difference between content and noise. Our RAG system accuracy improved by 35%."* - **Technical Writer**
-
----
-
-## 📞 Support & Community
-
-- 🐛 **Issues & Feature Requests**: [GitHub Issues](https://github.com/your-repo/rag-spider/issues)
-- 💬 **Community Support**: [Apify Discord](https://discord.gg/jyEM2PRvMU) 
-- 📧 **Direct Support**: Contact through Apify Console
-- 📖 **Documentation**: [Apify Docs](https://docs.apify.com)
-- 🎥 **Video Tutorials**: [YouTube Channel](https://youtube.com/@apify)
+### How do I limit compute costs?
+Set `maxRequestsPerCrawl` to a conservative ceiling (e.g., `20` or `50`), set `crawlDepth: 2`, and use `crawlMode: "incremental"` on repeat scheduled runs.
 
 ---
 
-## 🏆 Ready to Build Better RAG Systems?
+## Legal & Compliance Disclaimer
 
-**Stop wasting time on manual content cleaning. Start building with clean, AI-ready data today.**
-
-[![Run on Apify](https://img.shields.io/badge/🚀%20Run%20RAG%20Spider-orange?style=for-the-badge&logo=apify)](https://console.apify.com/actors/rag-spider)
-
----
-
-*Built with ❤️ for the AI community by developers who understand the pain of dirty training data.*
+> **Ethical Web Scraping Notice**: RAG Spider is designed for ethical web scraping and knowledge extraction from publicly accessible documentation, open-source projects, and technical websites. It does not bypass paywalls, crack CAPTCHAs, or extract private, password-protected personal data. You are responsible for ensuring that your use of this Actor complies with the target website's Terms of Service, robots.txt directives, and applicable data privacy regulations, including the General Data Protection Regulation (GDPR) and the California Consumer Privacy Act (CCPA).
