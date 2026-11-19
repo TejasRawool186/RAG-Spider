@@ -138,10 +138,10 @@ export class TextProcessor {
                 throw new TextProcessingError('Text content must be a non-empty string', 'validation');
             }
             
-            console.log(`🔄 Starting text processing pipeline for ${text.length} characters`);
+            console.log(`[TextProcessor] Starting text processing pipeline for ${text.length} characters`);
             
             // Stage 1: Text Chunking
-            console.log(`📄 Stage 1: Chunking text content`);
+            console.log(`[TextProcessor] Stage 1: Chunking text content`);
             const chunkingResult = await this.textChunker.chunk(text, {
                 sourceUrl: sourceInfo.url,
                 processingOptions: this.options
@@ -154,7 +154,7 @@ export class TextProcessor {
             warnings.push(...chunkingResult.warnings);
             
             // Stage 2: Metadata Enrichment
-            console.log(`🔍 Stage 2: Enriching ${chunkingResult.chunks.length} chunks with metadata`);
+            console.log(`[TextProcessor] Stage 2: Enriching ${chunkingResult.chunks.length} chunks with metadata`);
             const enrichmentResult = await this.metadataEnricher.enrich(
                 chunkingResult.chunks,
                 sourceInfo,
@@ -173,7 +173,7 @@ export class TextProcessor {
             warnings.push(...enrichmentResult.warnings);
             
             // Stage 3: Token Estimation
-            console.log(`🔢 Stage 3: Estimating tokens for ${enrichmentResult.enrichedChunks.length} chunks`);
+            console.log(`[TextProcessor] Stage 3: Estimating tokens for ${enrichmentResult.enrichedChunks.length} chunks`);
             const tokenResult = await this.tokenEstimator.estimateTokensForChunks(
                 enrichmentResult.enrichedChunks,
                 { model: this.options.tokenModel }
@@ -186,7 +186,7 @@ export class TextProcessor {
             warnings.push(...tokenResult.warnings);
             
             // Stage 4: Combine Results
-            console.log(`🔗 Stage 4: Combining results into final processed chunks`);
+            console.log(`[TextProcessor] Stage 4: Combining results into final processed chunks`);
             const processedChunks = this.combineResults(
                 enrichmentResult.enrichedChunks,
                 tokenResult.results
@@ -201,7 +201,7 @@ export class TextProcessor {
                 processingTime
             );
             
-            console.log(`✅ Text processing completed: ${processedChunks.length} chunks, ${tokenResult.totalTokens} tokens, ${processingTime}ms`);
+            console.log(`[TextProcessor] Text processing completed: ${processedChunks.length} chunks, ${tokenResult.totalTokens} tokens, ${processingTime}ms`);
             
             return new TextProcessingResult({
                 success: true,
@@ -226,7 +226,7 @@ export class TextProcessor {
                 timestamp: new Date().toISOString()
             });
             
-            console.error(`❌ Text processing failed at stage ${error.stage}:`, error.message);
+            console.error(`[TextProcessor] Text processing failed at stage ${error.stage}:`, error.message);
             
             return new TextProcessingResult({
                 success: false,
@@ -251,7 +251,7 @@ export class TextProcessor {
             throw new TextProcessingError('Texts must be an array', 'validation');
         }
         
-        console.log(`🔄 Starting batch text processing for ${texts.length} texts`);
+        console.log(`[TextProcessor] Starting batch text processing for ${texts.length} texts`);
         
         const results = [];
         const concurrency = Math.min(this.options.maxConcurrency, texts.length);
@@ -277,7 +277,7 @@ export class TextProcessor {
             }
         }
         
-        console.log(`✅ Batch text processing completed: ${results.length} texts processed`);
+        console.log(`[TextProcessor] Batch text processing completed: ${results.length} texts processed`);
         return results;
     }
     

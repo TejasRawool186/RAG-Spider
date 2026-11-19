@@ -136,7 +136,7 @@ export class MetadataEnricher {
         const enrichedChunks = [];
         
         try {
-            console.log(`🔍 Enriching ${chunks.length} chunks with metadata`);
+            console.log(`[MetadataEnricher] Enriching ${chunks.length} chunks with metadata`);
             
             // Validate source info
             const validatedSourceInfo = this.validateSourceInfo(sourceInfo, warnings);
@@ -154,7 +154,7 @@ export class MetadataEnricher {
                     );
                     enrichedChunks.push(enrichedChunk);
                 } catch (error) {
-                    console.warn(`Warning: Failed to enrich chunk ${i}:`, error.message);
+                    console.warn(`[MetadataEnricher] Failed to enrich chunk ${i}:`, error.message);
                     warnings.push(`Failed to enrich chunk ${i}: ${error.message}`);
                     
                     // Create minimal enriched chunk
@@ -171,7 +171,7 @@ export class MetadataEnricher {
             // Calculate statistics
             const stats = this.calculateEnrichmentStats(enrichedChunks, chunks);
             
-            console.log(`✅ Metadata enrichment completed: ${enrichedChunks.length} chunks enriched`);
+            console.log(`[MetadataEnricher] Metadata enrichment completed: ${enrichedChunks.length} chunks enriched`);
             
             return new EnrichmentResult({
                 success: true,
@@ -183,7 +183,7 @@ export class MetadataEnricher {
             });
             
         } catch (error) {
-            console.error(`❌ Metadata enrichment failed:`, error.message);
+            console.error(`[MetadataEnricher] Metadata enrichment failed:`, error.message);
             throw new MetadataEnrichmentError(
                 `Failed to enrich metadata: ${error.message}`,
                 -1,
