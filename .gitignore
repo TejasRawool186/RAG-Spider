@@ -55,6 +55,7 @@ logs/
 # Apify storage
 apify_storage/
 storage/
+.apify/
 
 # Development and testing files
 .kiro/

@@ -8,7 +8,7 @@
  * Requirements: 5.1, 5.5
  */
 
-import { validateInput, ValidationError, createErrorReport } from './inputValidator.js';
+import { validateInput, ValidationError, createErrorReport, EXTENDED_DEFAULTS } from './inputValidator.js';
 
 /**
  * Configuration manager class that handles all configuration-related operations
@@ -28,15 +28,19 @@ export class ConfigManager {
      */
     parseAndValidate(rawInput) {
         try {
-            console.log('🔍 Validating input configuration...');
+            console.log('[ConfigManager] Validating input configuration...');
             
-            // Validate the input
-            this.config = validateInput(rawInput);
+            // Validate the input and merge extended defaults
+            const validated = validateInput(rawInput);
+            this.config = {
+                ...EXTENDED_DEFAULTS,
+                ...validated
+            };
             this.isValid = true;
             this.errors = [];
             
-            console.log('✅ Input validation successful');
-            console.log(`📊 Configuration summary:
+            console.log('[ConfigManager] Input validation successful');
+            console.log(`[ConfigManager] Configuration summary:
   - Start URLs: ${this.config.startUrls.length}
   - Crawl Depth: ${this.config.crawlDepth}
   - URL Patterns: ${this.config.includeUrlGlobs.length}
@@ -54,8 +58,8 @@ export class ConfigManager {
                 const errorReport = createErrorReport(error);
                 this.errors.push(errorReport);
                 
-                console.error('❌ Input validation failed:', error.message);
-                console.error('📋 Error details:', JSON.stringify(errorReport, null, 2));
+                console.error('[ConfigManager] Input validation failed:', error.message);
+                console.error('[ConfigManager] Error details:', JSON.stringify(errorReport, null, 2));
                 
                 throw error;
             } else {
@@ -69,7 +73,7 @@ export class ConfigManager {
                 const errorReport = createErrorReport(unexpectedError);
                 this.errors.push(errorReport);
                 
-                console.error('💥 Unexpected configuration error:', error);
+                console.error('[ConfigManager] Unexpected configuration error:', error);
                 throw unexpectedError;
             }
         }
@@ -98,6 +102,7 @@ export class ConfigManager {
         return {
             startUrls: config.startUrls,
             maxRequestsPerCrawl: config.maxRequestsPerCrawl,
+            requestDelay: config.requestDelay,
             requestHandlerTimeoutSecs: 120,
             navigationTimeoutSecs: 30,
             proxyConfiguration: config.proxyConfiguration,

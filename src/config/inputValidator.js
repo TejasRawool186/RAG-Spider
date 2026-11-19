@@ -1,14 +1,18 @@
 /**
  * Input validation and configuration management for RAG Spider
  * 
- * This module validates all input parameters according to the defined schema
+ * Validates all input parameters according to the defined schema
  * and provides clear error messages for validation failures.
  * 
- * Requirements: 5.1, 5.5
+ * Requirements: 5.1, 5.5, 6.21
  */
 
+import { ChunkingStrategy } from '../processing/textChunker.js';
+import { CrawlMode } from '../storage/crawlStateManager.js';
+import { ExportFormat } from '../export/vectorExporter.js';
+
 /**
- * Default configuration values
+ * Default configuration values (backward-compatible core schema)
  */
 export const DEFAULT_CONFIG = {
     crawlDepth: 2,
@@ -20,6 +24,46 @@ export const DEFAULT_CONFIG = {
     proxyConfiguration: {
         useApifyProxy: true
     }
+};
+
+/**
+ * Extended configuration defaults for Section 6 advanced RAG features
+ */
+export const EXTENDED_DEFAULTS = {
+    excludeUrlGlobs: [],
+    maxConcurrency: 5,
+    maxRequestRetries: 3,
+    requestTimeoutSecs: 60,
+    sitemapDiscovery: true,
+    respectRobotsTxt: true,
+    enabledFormats: ['html', 'pdf', 'docx', 'txt', 'md', 'csv', 'json', 'xml'],
+    enableReadability: true,
+    enableImageMetadata: true,
+    enableStructuredData: true,
+    preserveCodeBlocks: true,
+    preserveTables: true,
+    chunkingStrategy: ChunkingStrategy.RECURSIVE,
+    maxChunkTokens: 1000,
+    preserveHeadings: true,
+    enableQualityScoring: true,
+    qualityThreshold: 50,
+    enableDeduplication: true,
+    enableDatasetValidation: true,
+    crawlMode: CrawlMode.FULL,
+    enableContentFingerprinting: true,
+    enableChangeDetection: true,
+    enableVersionHistory: false,
+    enableLanguageDetection: true,
+    targetLanguages: [],
+    exportFormat: ExportFormat.JSONL,
+    vectorDatabaseProvider: 'qdrant',
+    enableExternalExport: false,
+    exportBatchSize: 100,
+    generateDashboard: true,
+    dashboardTheme: 'dark',
+    maximumDownloadSize: 10 * 1024 * 1024,
+    maximumMemoryUsage: 2048,
+    enableDetailedLogging: false
 };
 
 /**
@@ -65,10 +109,9 @@ function validateStartUrls(startUrls) {
     startUrls.forEach((urlItem, index) => {
         let url;
         
-        // Handle both string URLs and Apify requestListSources format
         if (typeof urlItem === 'string') {
             url = urlItem;
-        } else if (typeof urlItem === 'object' && urlItem.url) {
+        } else if (typeof urlItem === 'object' && urlItem && urlItem.url) {
             url = urlItem.url;
         } else {
             throw new ValidationError(
@@ -98,13 +141,17 @@ function validateCrawlDepth(crawlDepth) {
         throw new ValidationError('crawlDepth must be an integer', 'crawlDepth', crawlDepth);
     }
     
-    if (crawlDepth < 1 || crawlDepth > 10) {
-        throw new ValidationError('crawlDepth must be between 1 and 10', 'crawlDepth', crawlDepth);
+    if (crawlDepth < 1) {
+        throw new ValidationError('crawlDepth must be at least 1', 'crawlDepth', crawlDepth);
+    }
+    
+    if (crawlDepth > 10) {
+        throw new ValidationError('crawlDepth cannot exceed 10', 'crawlDepth', crawlDepth);
     }
 }
 
 /**
- * Validates URL glob patterns
+ * Validates include URL glob patterns
  * @param {Array} includeUrlGlobs - Array of glob pattern strings
  * @throws {ValidationError} - If validation fails
  */
@@ -116,7 +163,7 @@ function validateIncludeUrlGlobs(includeUrlGlobs) {
     includeUrlGlobs.forEach((pattern, index) => {
         if (typeof pattern !== 'string') {
             throw new ValidationError(
-                `includeUrlGlobs[${index}] must be a string`,
+                `includeUrlGlobs[${index}] must be a string pattern`,
                 `includeUrlGlobs[${index}]`,
                 pattern
             );
@@ -130,10 +177,9 @@ function validateIncludeUrlGlobs(includeUrlGlobs) {
             );
         }
         
-        // Basic validation for glob patterns - should contain valid URL-like structure
-        if (!pattern.includes('://') && !pattern.startsWith('*')) {
+        if (!pattern.startsWith('http://') && !pattern.startsWith('https://') && !pattern.startsWith('**') && !pattern.startsWith('*')) {
             throw new ValidationError(
-                `includeUrlGlobs[${index}] should be a valid URL pattern (e.g., 'https://example.com/**')`,
+                `includeUrlGlobs[${index}] must be a valid URL pattern starting with http://, https://, or glob wildcards`,
                 `includeUrlGlobs[${index}]`,
                 pattern
             );
@@ -151,15 +197,19 @@ function validateChunkSize(chunkSize) {
         throw new ValidationError('chunkSize must be an integer', 'chunkSize', chunkSize);
     }
     
-    if (chunkSize < 100 || chunkSize > 8000) {
-        throw new ValidationError('chunkSize must be between 100 and 8000 characters', 'chunkSize', chunkSize);
+    if (chunkSize < 100) {
+        throw new ValidationError('chunkSize must be at least 100 characters', 'chunkSize', chunkSize);
+    }
+    
+    if (chunkSize > 8000) {
+        throw new ValidationError('chunkSize cannot exceed 8000 characters', 'chunkSize', chunkSize);
     }
 }
 
 /**
  * Validates chunk overlap parameter
- * @param {number} chunkOverlap - Characters to overlap between chunks
- * @param {number} chunkSize - Chunk size for validation context
+ * @param {number} chunkOverlap - Overlap characters between chunks
+ * @param {number} chunkSize - Chunk size to validate against
  * @throws {ValidationError} - If validation fails
  */
 function validateChunkOverlap(chunkOverlap, chunkSize) {
@@ -167,8 +217,8 @@ function validateChunkOverlap(chunkOverlap, chunkSize) {
         throw new ValidationError('chunkOverlap must be an integer', 'chunkOverlap', chunkOverlap);
     }
     
-    if (chunkOverlap < 0 || chunkOverlap > 500) {
-        throw new ValidationError('chunkOverlap must be between 0 and 500 characters', 'chunkOverlap', chunkOverlap);
+    if (chunkOverlap < 0) {
+        throw new ValidationError('chunkOverlap cannot be negative', 'chunkOverlap', chunkOverlap);
     }
     
     if (chunkOverlap >= chunkSize) {
@@ -190,8 +240,12 @@ function validateMaxRequestsPerCrawl(maxRequestsPerCrawl) {
         throw new ValidationError('maxRequestsPerCrawl must be an integer', 'maxRequestsPerCrawl', maxRequestsPerCrawl);
     }
     
-    if (maxRequestsPerCrawl < 1 || maxRequestsPerCrawl > 10000) {
-        throw new ValidationError('maxRequestsPerCrawl must be between 1 and 10000', 'maxRequestsPerCrawl', maxRequestsPerCrawl);
+    if (maxRequestsPerCrawl < 1) {
+        throw new ValidationError('maxRequestsPerCrawl must be at least 1', 'maxRequestsPerCrawl', maxRequestsPerCrawl);
+    }
+    
+    if (maxRequestsPerCrawl > 10000) {
+        throw new ValidationError('maxRequestsPerCrawl cannot exceed 10000', 'maxRequestsPerCrawl', maxRequestsPerCrawl);
     }
 }
 
@@ -205,27 +259,86 @@ function validateRequestDelay(requestDelay) {
         throw new ValidationError('requestDelay must be an integer', 'requestDelay', requestDelay);
     }
     
-    if (requestDelay < 0 || requestDelay > 10000) {
-        throw new ValidationError('requestDelay must be between 0 and 10000 milliseconds', 'requestDelay', requestDelay);
+    if (requestDelay < 0) {
+        throw new ValidationError('requestDelay cannot be negative', 'requestDelay', requestDelay);
+    }
+    
+    if (requestDelay > 10000) {
+        throw new ValidationError('requestDelay cannot exceed 10000ms (10 seconds)', 'requestDelay', requestDelay);
     }
 }
 
 /**
- * Validates proxy configuration
- * @param {Object} proxyConfiguration - Proxy settings
+ * Validates proxy configuration parameter
+ * @param {Object} proxyConfiguration - Proxy configuration object
  * @throws {ValidationError} - If validation fails
  */
 function validateProxyConfiguration(proxyConfiguration) {
-    if (proxyConfiguration !== null && typeof proxyConfiguration !== 'object') {
+    if (proxyConfiguration === null) {
+        return;
+    }
+    
+    if (typeof proxyConfiguration !== 'object') {
         throw new ValidationError('proxyConfiguration must be an object or null', 'proxyConfiguration', proxyConfiguration);
     }
     
-    if (proxyConfiguration && typeof proxyConfiguration.useApifyProxy !== 'undefined') {
+    if (typeof proxyConfiguration.useApifyProxy !== 'undefined') {
         if (typeof proxyConfiguration.useApifyProxy !== 'boolean') {
             throw new ValidationError(
                 'proxyConfiguration.useApifyProxy must be a boolean',
                 'proxyConfiguration.useApifyProxy',
                 proxyConfiguration.useApifyProxy
+            );
+        }
+    }
+}
+
+/**
+ * Validates chunking strategy
+ * @param {string} strategy 
+ */
+function validateChunkingStrategy(strategy) {
+    if (strategy && typeof strategy === 'string') {
+        const valid = Object.values(ChunkingStrategy);
+        if (!valid.includes(strategy.toLowerCase())) {
+            throw new ValidationError(
+                `chunkingStrategy '${strategy}' is invalid. Allowed: ${valid.join(', ')}`,
+                'chunkingStrategy',
+                strategy
+            );
+        }
+    }
+}
+
+/**
+ * Validates crawl mode
+ * @param {string} mode 
+ */
+function validateCrawlMode(mode) {
+    if (mode && typeof mode === 'string') {
+        const valid = Object.values(CrawlMode);
+        if (!valid.includes(mode.toLowerCase())) {
+            throw new ValidationError(
+                `crawlMode '${mode}' is invalid. Allowed: ${valid.join(', ')}`,
+                'crawlMode',
+                mode
+            );
+        }
+    }
+}
+
+/**
+ * Validates export format
+ * @param {string} format 
+ */
+function validateExportFormat(format) {
+    if (format && typeof format === 'string') {
+        const valid = Object.values(ExportFormat);
+        if (!valid.includes(format.toLowerCase())) {
+            throw new ValidationError(
+                `exportFormat '${format}' is invalid. Allowed: ${valid.join(', ')}`,
+                'exportFormat',
+                format
             );
         }
     }
@@ -242,14 +355,12 @@ export function validateInput(input) {
         throw new ValidationError('Input must be a valid object', 'input', input);
     }
     
-    // Create normalized config with defaults
     const config = {
         ...DEFAULT_CONFIG,
         ...input
     };
     
     try {
-        // Validate all required and optional parameters
         validateStartUrls(config.startUrls);
         validateCrawlDepth(config.crawlDepth);
         validateIncludeUrlGlobs(config.includeUrlGlobs);
@@ -258,12 +369,14 @@ export function validateInput(input) {
         validateMaxRequestsPerCrawl(config.maxRequestsPerCrawl);
         validateRequestDelay(config.requestDelay);
         validateProxyConfiguration(config.proxyConfiguration);
+        validateChunkingStrategy(config.chunkingStrategy);
+        validateCrawlMode(config.crawlMode);
+        validateExportFormat(config.exportFormat);
         
         return config;
         
     } catch (error) {
         if (error instanceof ValidationError) {
-            // Re-throw validation errors with enhanced context
             throw new ValidationError(
                 `Configuration validation failed: ${error.message}`,
                 error.field,
@@ -271,7 +384,6 @@ export function validateInput(input) {
             );
         }
         
-        // Handle unexpected errors
         throw new ValidationError(
             `Unexpected validation error: ${error.message}`,
             'unknown',
@@ -329,6 +441,10 @@ function generateSuggestions(field, value) {
         case 'chunkOverlap':
             suggestions.push('Set chunkOverlap between 0 and 500 characters');
             suggestions.push('Recommended: 10-20% of chunk size for good context preservation');
+            break;
+
+        case 'chunkingStrategy':
+            suggestions.push('Choose one of: recursive, fixed, paragraph, sentence, heading_markdown, code_block_aware, table_aware, doc_section');
             break;
             
         default:
