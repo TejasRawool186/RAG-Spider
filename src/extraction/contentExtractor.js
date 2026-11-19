@@ -116,11 +116,11 @@ export class ContentExtractor {
         
         try {
             // Stage 1: Parse HTML with JSDOM
-            console.log(`🔍 Parsing HTML for ${url}`);
+            console.log(`[ContentExtractor] Parsing HTML for ${url}`);
             parsedDocument = await this.parseHtml(html, url);
             
             // Stage 2: Extract content with Readability
-            console.log(`📖 Extracting content for ${url}`);
+            console.log(`[ContentExtractor] Extracting content for ${url}`);
             const extractionResult = await this.extractContent(parsedDocument);
             
             if (!extractionResult.success) {
@@ -132,7 +132,7 @@ export class ContentExtractor {
             }
             
             // Stage 3: Convert to Markdown
-            console.log(`📝 Converting to Markdown for ${url}`);
+            console.log(`[ContentExtractor] Converting to Markdown for ${url}`);
             const conversionResult = await this.convertToMarkdown(extractionResult.content);
             
             if (!conversionResult.success) {
@@ -167,7 +167,7 @@ export class ContentExtractor {
             // Validate final result
             this.validateResult(result);
             
-            console.log(`✅ Content extraction completed for ${url}`);
+            console.log(`[ContentExtractor] Content extraction completed for ${url}`);
             return result;
             
         } catch (error) {
@@ -177,7 +177,7 @@ export class ContentExtractor {
                 timestamp: new Date().toISOString()
             });
             
-            console.error(`❌ Content extraction failed for ${url}:`, error.message);
+            console.error(`[ContentExtractor] Content extraction failed for ${url}:`, error.message);
             
             return new ContentExtractionResult({
                 success: false,
