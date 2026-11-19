@@ -209,6 +209,17 @@ try {
 
     const crawler = new PlaywrightCrawler({
         ...crawleeOptions,
+        launchContext: {
+            launchOptions: {
+                headless: true,
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu'
+                ]
+            }
+        },
         proxyConfiguration,
         maxConcurrency: config.maxConcurrency || crawlerConfig.maxConcurrency || 5,
         maxRequestsPerCrawl: config.maxRequestsPerCrawl,

@@ -28,7 +28,7 @@
     "jsdom": "^23.0.0",
     "langchain": "^0.1.0",
     "minimatch": "^10.1.1",
-    "playwright": "^1.40.0",
+    "playwright": "*",
     "turndown": "^7.1.2",
     "turndown-plugin-gfm": "^1.0.2"
   },
