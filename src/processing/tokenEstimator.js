@@ -222,7 +222,7 @@ export class TokenEstimator {
         const results = [];
         
         try {
-            console.log(`🔢 Estimating tokens for ${texts.length} texts`);
+            console.log(`Estimating tokens for ${texts.length} texts`);
             
             // Process each text
             for (let i = 0; i < texts.length; i++) {
@@ -254,7 +254,7 @@ export class TokenEstimator {
             // Calculate batch statistics
             const stats = this.calculateBatchStats(results);
             
-            console.log(`✅ Token estimation completed: ${stats.totalTokens} total tokens`);
+            console.log(`Token estimation completed: ${stats.totalTokens} total tokens`);
             
             return new BatchTokenEstimationResult({
                 success: true,
@@ -269,7 +269,7 @@ export class TokenEstimator {
             });
             
         } catch (error) {
-            console.error(`❌ Batch token estimation failed:`, error.message);
+            console.error(`Batch token estimation failed:`, error.message);
             throw new TokenEstimationError(
                 `Failed to estimate tokens for batch: ${error.message}`,
                 0,
@@ -433,17 +433,58 @@ export class TokenEstimator {
      * @returns {Object} - Distribution analysis
      */
     analyzeTokenDistribution(tokenCounts) {
+        if (!tokenCounts || tokenCounts.length === 0) {
+            return { median: 0, p50: 0, p90: 0, p99: 0, q1: 0, q3: 0, standardDeviation: 0, variance: 0 };
+        }
         const sorted = [...tokenCounts].sort((a, b) => a - b);
         const length = sorted.length;
+        const median = length % 2 === 0 
+            ? (sorted[length / 2 - 1] + sorted[length / 2]) / 2
+            : sorted[Math.floor(length / 2)];
         
         return {
-            median: length % 2 === 0 
-                ? (sorted[length / 2 - 1] + sorted[length / 2]) / 2
-                : sorted[Math.floor(length / 2)],
+            median,
+            p50: median,
+            p90: sorted[Math.min(length - 1, Math.floor(length * 0.90))],
+            p99: sorted[Math.min(length - 1, Math.floor(length * 0.99))],
             q1: sorted[Math.floor(length * 0.25)],
             q3: sorted[Math.floor(length * 0.75)],
             standardDeviation: this.calculateStandardDeviation(tokenCounts),
             variance: this.calculateVariance(tokenCounts)
+        };
+    }
+
+    /**
+     * Analyzes and optimizes token budget across a set of chunks
+     * @param {Array<{ tokens?: number, content?: string }>} chunks 
+     * @param {number} maxTokenBudget 
+     * @returns {Object}
+     */
+    optimizeTokenBudget(chunks = [], maxTokenBudget = 800) {
+        const tokenCounts = chunks.map(c => c.tokens || 0);
+        const total = tokenCounts.reduce((a, b) => a + b, 0);
+        const avg = chunks.length > 0 ? Math.round(total / chunks.length) : 0;
+        const dist = this.analyzeTokenDistribution(tokenCounts);
+        const largest = [...chunks].sort((a, b) => (b.tokens || 0) - (a.tokens || 0)).slice(0, 5);
+
+        const oversizedChunks = chunks.filter(c => (c.tokens || 0) > maxTokenBudget);
+        let recommendedChunkSize = 1000; // character guideline
+        if (dist.p90 > maxTokenBudget) {
+            recommendedChunkSize = Math.max(300, Math.round(maxTokenBudget * 3.5));
+        }
+
+        return {
+            totalTokens: total,
+            averageTokensPerChunk: avg,
+            distribution: dist,
+            maxTokenBudget,
+            oversizedChunkCount: oversizedChunks.length,
+            recommendedChunkSize,
+            largestChunks: largest.map(c => ({
+                tokens: c.tokens,
+                preview: (c.content || '').slice(0, 100)
+            })),
+            estimatedEmbeddingTokens: total
         };
     }
     
