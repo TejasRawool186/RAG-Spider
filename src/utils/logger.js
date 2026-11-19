@@ -143,19 +143,19 @@ export class Logger {
         
         switch (level) {
             case LogLevel.DEBUG:
-                console.debug(`🔍 [${timestamp}] DEBUG: ${message}${contextStr}`);
+                console.debug(`[${timestamp}] DEBUG: ${message}${contextStr}`);
                 break;
             case LogLevel.INFO:
-                console.log(`ℹ️ [${timestamp}] INFO: ${message}${contextStr}`);
+                console.log(`[${timestamp}] INFO: ${message}${contextStr}`);
                 break;
             case LogLevel.WARN:
-                console.warn(`⚠️ [${timestamp}] WARN: ${message}${contextStr}`);
+                console.warn(`[${timestamp}] WARN: ${message}${contextStr}`);
                 break;
             case LogLevel.ERROR:
-                console.error(`❌ [${timestamp}] ERROR: ${message}${contextStr}`);
+                console.error(`[${timestamp}] ERROR: ${message}${contextStr}`);
                 break;
             case LogLevel.CRITICAL:
-                console.error(`🚨 [${timestamp}] CRITICAL: ${message}${contextStr}`);
+                console.error(`[${timestamp}] CRITICAL: ${message}${contextStr}`);
                 break;
         }
     }
