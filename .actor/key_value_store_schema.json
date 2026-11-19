@@ -6,6 +6,14 @@
     "dashboard": {
       "title": "Visual Analytics Dashboard",
       "description": "Standalone Dark Fintech visual report in HTML format",
+      "key": "OUTPUT.html",
+      "contentTypes": [
+        "text/html"
+      ]
+    },
+    "dashboardOutput": {
+      "title": "Visual Analytics Dashboard (OUTPUT)",
+      "description": "Standalone Dark Fintech visual report under standard OUTPUT key",
       "key": "OUTPUT",
       "contentTypes": [
         "text/html"

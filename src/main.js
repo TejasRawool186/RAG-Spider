@@ -53,6 +53,49 @@ const logger = createLogger({
 });
 
 let crawlStateManager = null;
+let dashboardSaved = false;
+let config = null;
+const startTime = Date.now();
+const crawledRecords = [];
+const allEnrichedChunks = [];
+const changeReports = [];
+const processingStats = {
+    totalRequests: 0,
+    successfulRequests: 0,
+    failedRequests: 0,
+    skippedRequests: 0,
+    totalChunks: 0,
+    totalTokens: 0,
+    startTime
+};
+
+/**
+ * Saves visual report dashboard to multiple compatible KVS keys:
+ * - OUTPUT.html (default visual report view for Apify Console iframe)
+ * - OUTPUT (standard Apify KVS output key)
+ * - report.html (alternative standard file key)
+ */
+async function saveVisualDashboard(dashboardData) {
+    if (dashboardSaved) return;
+    try {
+        const dashboardHtml = generateDashboardHtml(dashboardData);
+        await Actor.setValue('OUTPUT.html', dashboardHtml, { contentType: 'text/html' });
+        await Actor.setValue('OUTPUT', dashboardHtml, { contentType: 'text/html' });
+        await Actor.setValue('report.html', dashboardHtml, { contentType: 'text/html' });
+        dashboardSaved = true;
+
+        try {
+            const defaultKvs = await Actor.openKeyValueStore();
+            const reportUrl = `https://api.apify.com/v2/key-value-stores/${defaultKvs.id}/records/OUTPUT.html`;
+            logger.info('[RAG Spider] Visual dashboard successfully saved to Key-Value Store keys "OUTPUT.html" and "OUTPUT"');
+            logger.info(`[RAG Spider] Visual report direct link: ${reportUrl}`);
+        } catch {
+            logger.info('[RAG Spider] Visual dashboard successfully saved to Key-Value Store keys "OUTPUT.html" and "OUTPUT"');
+        }
+    } catch (dashErr) {
+        logger.warn('[RAG Spider] Failed to write visual dashboard to KVS:', { error: dashErr.message });
+    }
+}
 
 try {
     logger.info('[RAG Spider] Initializing production actor...', { version: '2.0.0', pid: process.pid });
@@ -62,7 +105,6 @@ try {
     logger.info('[RAG Spider] Raw input received', { inputKeys: Object.keys(rawInput) });
 
     const configManager = createConfigManager();
-    let config;
     try {
         config = configManager.parseAndValidate(rawInput);
         logger.info('[RAG Spider] Configuration validated successfully', configManager.getSummary());
@@ -87,6 +129,22 @@ try {
         logger.warn('[RAG Spider] Abort signal received. Saving state and flushing KVS records...');
         if (crawlStateManager) {
             await crawlStateManager.saveState().catch(() => {});
+        }
+        if (!dashboardSaved) {
+            try {
+                const abortData = aggregateDashboardData({
+                    crawledPages: crawledRecords,
+                    allChunks: allEnrichedChunks,
+                    processingStats: { ...processingStats, status: 'aborted' },
+                    validationReport: {},
+                    duplicateReport: {},
+                    crawlMode: config?.crawlMode || 'full',
+                    exportSummary: {},
+                    startTime,
+                    endTime: Date.now()
+                });
+                await saveVisualDashboard(abortData);
+            } catch {}
         }
     });
 
@@ -137,22 +195,7 @@ try {
         useApifyProxy: config.proxyConfiguration?.useApifyProxy || false
     });
 
-    // 6. Runtime tracking collections
-    const startTime = Date.now();
-    const crawledRecords = [];
-    const allEnrichedChunks = [];
-    const changeReports = [];
-    const processingStats = {
-        totalRequests: 0,
-        successfulRequests: 0,
-        failedRequests: 0,
-        skippedRequests: 0,
-        totalChunks: 0,
-        totalTokens: 0,
-        startTime
-    };
-
-    // 7. Configure PlaywrightCrawler
+    // 6. Configure PlaywrightCrawler
     const crawlerConfig = configManager.getCrawlerConfig();
     const {
         startUrls: _su,
@@ -509,8 +552,8 @@ try {
     });
 
     // 21. Standalone Visual Analytics Dashboard (Section 6.18)
-    if (config.generateDashboard) {
-        logger.info('[RAG Spider] Rendering standalone Dark Fintech visual report for KVS "OUTPUT"...');
+    if (config?.generateDashboard !== false) {
+        logger.info('[RAG Spider] Rendering standalone Dark Fintech visual report for KVS "OUTPUT.html"...');
         try {
             const dashboardData = aggregateDashboardData({
                 crawledPages: crawledRecords,
@@ -523,17 +566,7 @@ try {
                 startTime,
                 endTime
             });
-            const dashboardHtml = generateDashboardHtml(dashboardData);
-            await Actor.setValue('OUTPUT', dashboardHtml, { contentType: 'text/html' });
-            
-            try {
-                const defaultKvs = await Actor.openKeyValueStore();
-                const reportUrl = `https://api.apify.com/v2/key-value-stores/${defaultKvs.id}/records/OUTPUT`;
-                logger.info('[RAG Spider] Visual dashboard successfully saved to Key-Value Store key "OUTPUT"');
-                logger.info(`[RAG Spider] Visual report direct link: ${reportUrl}`);
-            } catch {
-                logger.info('[RAG Spider] Visual dashboard successfully saved to Key-Value Store key "OUTPUT"');
-            }
+            await saveVisualDashboard(dashboardData);
         } catch (dashErr) {
             logger.warn('[RAG Spider] Visual dashboard generation warning:', { error: dashErr.message });
         }
@@ -551,6 +584,36 @@ try {
         message: error.message,
         stack: error.stack
     });
+
+    // Ensure a diagnostic dashboard is generated and saved even if crawl failed early
+    if (!dashboardSaved) {
+        try {
+            const fallbackDashboardData = aggregateDashboardData({
+                crawledPages: crawledRecords,
+                allChunks: allEnrichedChunks,
+                processingStats: {
+                    ...processingStats,
+                    error: error.message,
+                    status: 'failed'
+                },
+                validationReport: {
+                    isValid: false,
+                    criticalCount: 1,
+                    warningCount: 0,
+                    errors: [{ message: error.message }]
+                },
+                duplicateReport: {},
+                crawlMode: config?.crawlMode || 'full',
+                exportSummary: {},
+                startTime,
+                endTime: Date.now()
+            });
+            await saveVisualDashboard(fallbackDashboardData);
+        } catch (fbErr) {
+            logger.warn('[RAG Spider] Failed to write fallback visual dashboard:', { error: fbErr.message });
+        }
+    }
+
     throw error;
 } finally {
     logger.cleanup();

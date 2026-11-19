@@ -3,6 +3,12 @@
   "title": "Output of RAG Spider",
   "description": "Clean Markdown chunks, structured dataset, vector database exports, and visual analytics report",
   "properties": {
+    "dashboard": {
+      "type": "string",
+      "title": "Visual Report",
+      "description": "Standalone Dark Fintech visual analytics report",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/OUTPUT.html"
+    },
     "dataset": {
       "type": "string",
       "title": "RAG Dataset",
@@ -14,12 +20,6 @@
       "title": "Key-Value Store",
       "description": "Storage holding the visual dashboard report, vector DB export files, and validation audits",
       "template": "{{links.apiDefaultKeyValueStoreUrl}}/keys"
-    },
-    "dashboard": {
-      "type": "string",
-      "title": "Visual Report",
-      "description": "Standalone Dark Fintech visual analytics report",
-      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/OUTPUT"
     }
   }
 }
